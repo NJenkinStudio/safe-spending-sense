@@ -15,6 +15,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedIncomeRouteImport } from './routes/_authenticated/income'
 import { Route as AuthenticatedForecastRouteImport } from './routes/_authenticated/forecast'
+import { Route as AuthenticatedDecideRouteImport } from './routes/_authenticated/decide'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedCalendarRouteImport } from './routes/_authenticated/calendar'
 import { Route as AuthenticatedBillsRouteImport } from './routes/_authenticated/bills'
@@ -49,6 +50,11 @@ const AuthenticatedForecastRoute = AuthenticatedForecastRouteImport.update({
   path: '/forecast',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedDecideRoute = AuthenticatedDecideRouteImport.update({
+  id: '/decide',
+  path: '/decide',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -77,6 +83,7 @@ export interface FileRoutesByFullPath {
   '/bills': typeof AuthenticatedBillsRoute
   '/calendar': typeof AuthenticatedCalendarRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/decide': typeof AuthenticatedDecideRoute
   '/forecast': typeof AuthenticatedForecastRoute
   '/income': typeof AuthenticatedIncomeRoute
   '/settings': typeof AuthenticatedSettingsRoute
@@ -88,6 +95,7 @@ export interface FileRoutesByTo {
   '/bills': typeof AuthenticatedBillsRoute
   '/calendar': typeof AuthenticatedCalendarRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/decide': typeof AuthenticatedDecideRoute
   '/forecast': typeof AuthenticatedForecastRoute
   '/income': typeof AuthenticatedIncomeRoute
   '/settings': typeof AuthenticatedSettingsRoute
@@ -101,6 +109,7 @@ export interface FileRoutesById {
   '/_authenticated/bills': typeof AuthenticatedBillsRoute
   '/_authenticated/calendar': typeof AuthenticatedCalendarRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/decide': typeof AuthenticatedDecideRoute
   '/_authenticated/forecast': typeof AuthenticatedForecastRoute
   '/_authenticated/income': typeof AuthenticatedIncomeRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
@@ -114,6 +123,7 @@ export interface FileRouteTypes {
     | '/bills'
     | '/calendar'
     | '/dashboard'
+    | '/decide'
     | '/forecast'
     | '/income'
     | '/settings'
@@ -125,6 +135,7 @@ export interface FileRouteTypes {
     | '/bills'
     | '/calendar'
     | '/dashboard'
+    | '/decide'
     | '/forecast'
     | '/income'
     | '/settings'
@@ -137,6 +148,7 @@ export interface FileRouteTypes {
     | '/_authenticated/bills'
     | '/_authenticated/calendar'
     | '/_authenticated/dashboard'
+    | '/_authenticated/decide'
     | '/_authenticated/forecast'
     | '/_authenticated/income'
     | '/_authenticated/settings'
@@ -192,6 +204,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedForecastRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/decide': {
+      id: '/_authenticated/decide'
+      path: '/decide'
+      fullPath: '/decide'
+      preLoaderRoute: typeof AuthenticatedDecideRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/dashboard': {
       id: '/_authenticated/dashboard'
       path: '/dashboard'
@@ -228,6 +247,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedBillsRoute: typeof AuthenticatedBillsRoute
   AuthenticatedCalendarRoute: typeof AuthenticatedCalendarRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedDecideRoute: typeof AuthenticatedDecideRoute
   AuthenticatedForecastRoute: typeof AuthenticatedForecastRoute
   AuthenticatedIncomeRoute: typeof AuthenticatedIncomeRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
@@ -238,6 +258,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedBillsRoute: AuthenticatedBillsRoute,
   AuthenticatedCalendarRoute: AuthenticatedCalendarRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedDecideRoute: AuthenticatedDecideRoute,
   AuthenticatedForecastRoute: AuthenticatedForecastRoute,
   AuthenticatedIncomeRoute: AuthenticatedIncomeRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
