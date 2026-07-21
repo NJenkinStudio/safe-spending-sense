@@ -32,9 +32,20 @@ export function runForecast({ accounts, rules, changes, start, end }: ForecastIn
   const s = startOfDay(start);
   const e = startOfDay(end);
 
+  // Earliest as-of date across accounts determines how far back we replay events
+  // so that balances at the forecast window start reflect events since as-of.
+  let earliest = s;
+  const asOfByAccount: Record<string, Date> = {};
+  for (const a of accounts) {
+    const asOf = a.balance_as_of ? startOfDay(parseISO(a.balance_as_of)) : s;
+    asOfByAccount[a.id] = asOf;
+    if (isBefore(asOf, earliest)) earliest = asOf;
+  }
+  const genStart = earliest;
+
   for (const rule of rules) {
     if (!rule.active) continue;
-    const dates = generateOccurrences(rule, s, e);
+    const dates = generateOccurrences(rule, genStart, e);
     for (const d of dates) {
       const eff = applyChanges(rule, changes, d);
       if (!eff.active) continue;
@@ -102,6 +113,18 @@ export function runForecast({ accounts, rules, changes, start, end }: ForecastIn
   const balances: Record<string, number> = {};
   for (const a of accounts) balances[a.id] = Number(a.current_balance);
 
+  // Replay events strictly after each account's balance_as_of and before the
+  // forecast window start so seeded balances at `s` are accurate.
+  for (const ev of events) {
+    if (ev.date >= fmt(s)) break;
+    const asOf = asOfByAccount[ev.accountId];
+    if (!asOf) continue;
+    // Only count events after the as-of date (as-of is end-of-day).
+    if (ev.date > fmt(asOf)) {
+      balances[ev.accountId] = (balances[ev.accountId] ?? 0) + ev.amount;
+    }
+  }
+
   const daily: DayBalance[] = [];
   const lowestByAccount: Record<string, { date: string; balance: number }> = {};
   const negativeDatesByAccount: Record<string, string[]> = {};
@@ -112,6 +135,9 @@ export function runForecast({ accounts, rules, changes, start, end }: ForecastIn
 
   let cursor = s;
   let idx = 0;
+  // Skip pre-window events already applied above.
+  const sStr = fmt(s);
+  while (idx < events.length && events[idx].date < sStr) idx++;
   while (!isAfter(cursor, e)) {
     const dateStr = fmt(cursor);
     const dayEvents: ForecastEvent[] = [];
