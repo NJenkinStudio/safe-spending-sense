@@ -37,7 +37,7 @@ function AccountsPage() {
       minimum_balance: Number(form.minimum_balance),
       color: form.color,
       balance_as_of: form.balance_as_of,
-    });
+    } as never);
     if (error) return toast.error(error.message);
     toast.success("Account created");
     setOpen(false);
