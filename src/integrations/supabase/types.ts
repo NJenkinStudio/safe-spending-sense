@@ -17,6 +17,7 @@ export type Database = {
       accounts: {
         Row: {
           account_type: string
+          balance_as_of: string
           color: string
           created_at: string
           current_balance: number
@@ -30,6 +31,7 @@ export type Database = {
         }
         Insert: {
           account_type?: string
+          balance_as_of?: string
           color?: string
           created_at?: string
           current_balance?: number
@@ -43,6 +45,7 @@ export type Database = {
         }
         Update: {
           account_type?: string
+          balance_as_of?: string
           color?: string
           created_at?: string
           current_balance?: number
