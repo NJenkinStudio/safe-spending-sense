@@ -17,6 +17,8 @@ export interface Account {
   minimum_balance: number;
   include_in_forecast: boolean;
   color: string;
+  /** ISO date (yyyy-MM-dd) representing the as-of date for current_balance. */
+  balance_as_of?: string | null;
 }
 
 export interface FinancialRule {
