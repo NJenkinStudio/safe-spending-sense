@@ -23,7 +23,8 @@ function AccountsPage() {
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ["accounts"], queryFn: fetchAccounts });
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ name: "", account_type: "checking", current_balance: "0", minimum_balance: "0", color: "#7A9A7E" });
+  const today = new Date().toISOString().slice(0, 10);
+  const [form, setForm] = useState({ name: "", account_type: "checking", current_balance: "0", minimum_balance: "0", color: "#7A9A7E", balance_as_of: today });
 
   const save = async () => {
     const { data: u } = await supabase.auth.getUser();
@@ -35,11 +36,12 @@ function AccountsPage() {
       current_balance: Number(form.current_balance),
       minimum_balance: Number(form.minimum_balance),
       color: form.color,
+      balance_as_of: form.balance_as_of,
     });
     if (error) return toast.error(error.message);
     toast.success("Account created");
     setOpen(false);
-    setForm({ name: "", account_type: "checking", current_balance: "0", minimum_balance: "0", color: "#7A9A7E" });
+    setForm({ name: "", account_type: "checking", current_balance: "0", minimum_balance: "0", color: "#7A9A7E", balance_as_of: today });
     qc.invalidateQueries({ queryKey: ["accounts"] });
   };
 
@@ -78,6 +80,7 @@ function AccountsPage() {
                 <div><Label>Current balance</Label><Input type="number" step="0.01" value={form.current_balance} onChange={(e) => setForm({ ...form, current_balance: e.target.value })} /></div>
                 <div><Label>Minimum</Label><Input type="number" step="0.01" value={form.minimum_balance} onChange={(e) => setForm({ ...form, minimum_balance: e.target.value })} /></div>
               </div>
+              <div><Label>Balance as of</Label><Input type="date" value={form.balance_as_of} onChange={(e) => setForm({ ...form, balance_as_of: e.target.value })} /></div>
               <div><Label>Color</Label><Input type="color" value={form.color} onChange={(e) => setForm({ ...form, color: e.target.value })} /></div>
               <Button className="w-full" onClick={save}>Save</Button>
             </div>
