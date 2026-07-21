@@ -13,8 +13,10 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
+import { Route as AuthenticatedScenariosRouteImport } from './routes/_authenticated/scenarios'
 import { Route as AuthenticatedIncomeRouteImport } from './routes/_authenticated/income'
 import { Route as AuthenticatedForecastRouteImport } from './routes/_authenticated/forecast'
+import { Route as AuthenticatedDecideRouteImport } from './routes/_authenticated/decide'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedCalendarRouteImport } from './routes/_authenticated/calendar'
 import { Route as AuthenticatedBillsRouteImport } from './routes/_authenticated/bills'
@@ -39,6 +41,11 @@ const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedScenariosRoute = AuthenticatedScenariosRouteImport.update({
+  id: '/scenarios',
+  path: '/scenarios',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedIncomeRoute = AuthenticatedIncomeRouteImport.update({
   id: '/income',
   path: '/income',
@@ -47,6 +54,11 @@ const AuthenticatedIncomeRoute = AuthenticatedIncomeRouteImport.update({
 const AuthenticatedForecastRoute = AuthenticatedForecastRouteImport.update({
   id: '/forecast',
   path: '/forecast',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedDecideRoute = AuthenticatedDecideRouteImport.update({
+  id: '/decide',
+  path: '/decide',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
@@ -77,8 +89,10 @@ export interface FileRoutesByFullPath {
   '/bills': typeof AuthenticatedBillsRoute
   '/calendar': typeof AuthenticatedCalendarRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/decide': typeof AuthenticatedDecideRoute
   '/forecast': typeof AuthenticatedForecastRoute
   '/income': typeof AuthenticatedIncomeRoute
+  '/scenarios': typeof AuthenticatedScenariosRoute
   '/settings': typeof AuthenticatedSettingsRoute
 }
 export interface FileRoutesByTo {
@@ -88,8 +102,10 @@ export interface FileRoutesByTo {
   '/bills': typeof AuthenticatedBillsRoute
   '/calendar': typeof AuthenticatedCalendarRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/decide': typeof AuthenticatedDecideRoute
   '/forecast': typeof AuthenticatedForecastRoute
   '/income': typeof AuthenticatedIncomeRoute
+  '/scenarios': typeof AuthenticatedScenariosRoute
   '/settings': typeof AuthenticatedSettingsRoute
 }
 export interface FileRoutesById {
@@ -101,8 +117,10 @@ export interface FileRoutesById {
   '/_authenticated/bills': typeof AuthenticatedBillsRoute
   '/_authenticated/calendar': typeof AuthenticatedCalendarRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/decide': typeof AuthenticatedDecideRoute
   '/_authenticated/forecast': typeof AuthenticatedForecastRoute
   '/_authenticated/income': typeof AuthenticatedIncomeRoute
+  '/_authenticated/scenarios': typeof AuthenticatedScenariosRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
 }
 export interface FileRouteTypes {
@@ -114,8 +132,10 @@ export interface FileRouteTypes {
     | '/bills'
     | '/calendar'
     | '/dashboard'
+    | '/decide'
     | '/forecast'
     | '/income'
+    | '/scenarios'
     | '/settings'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -125,8 +145,10 @@ export interface FileRouteTypes {
     | '/bills'
     | '/calendar'
     | '/dashboard'
+    | '/decide'
     | '/forecast'
     | '/income'
+    | '/scenarios'
     | '/settings'
   id:
     | '__root__'
@@ -137,8 +159,10 @@ export interface FileRouteTypes {
     | '/_authenticated/bills'
     | '/_authenticated/calendar'
     | '/_authenticated/dashboard'
+    | '/_authenticated/decide'
     | '/_authenticated/forecast'
     | '/_authenticated/income'
+    | '/_authenticated/scenarios'
     | '/_authenticated/settings'
   fileRoutesById: FileRoutesById
 }
@@ -178,6 +202,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/scenarios': {
+      id: '/_authenticated/scenarios'
+      path: '/scenarios'
+      fullPath: '/scenarios'
+      preLoaderRoute: typeof AuthenticatedScenariosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/income': {
       id: '/_authenticated/income'
       path: '/income'
@@ -190,6 +221,13 @@ declare module '@tanstack/react-router' {
       path: '/forecast'
       fullPath: '/forecast'
       preLoaderRoute: typeof AuthenticatedForecastRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/decide': {
+      id: '/_authenticated/decide'
+      path: '/decide'
+      fullPath: '/decide'
+      preLoaderRoute: typeof AuthenticatedDecideRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/dashboard': {
@@ -228,8 +266,10 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedBillsRoute: typeof AuthenticatedBillsRoute
   AuthenticatedCalendarRoute: typeof AuthenticatedCalendarRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedDecideRoute: typeof AuthenticatedDecideRoute
   AuthenticatedForecastRoute: typeof AuthenticatedForecastRoute
   AuthenticatedIncomeRoute: typeof AuthenticatedIncomeRoute
+  AuthenticatedScenariosRoute: typeof AuthenticatedScenariosRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
 }
 
@@ -238,8 +278,10 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedBillsRoute: AuthenticatedBillsRoute,
   AuthenticatedCalendarRoute: AuthenticatedCalendarRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedDecideRoute: AuthenticatedDecideRoute,
   AuthenticatedForecastRoute: AuthenticatedForecastRoute,
   AuthenticatedIncomeRoute: AuthenticatedIncomeRoute,
+  AuthenticatedScenariosRoute: AuthenticatedScenariosRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
 }
 

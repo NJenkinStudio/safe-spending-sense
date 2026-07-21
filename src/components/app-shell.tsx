@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
-import { LayoutDashboard, Wallet, ArrowLeftRight, Receipt, LineChart, CalendarDays, Settings, LogOut, Sprout } from "lucide-react";
+import { LayoutDashboard, Wallet, ArrowLeftRight, Receipt, LineChart, CalendarDays, Settings, LogOut, Sprout, ShoppingBag, GitBranch } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 
@@ -10,6 +10,8 @@ const nav = [
   { to: "/accounts", label: "Accounts", icon: Wallet },
   { to: "/income", label: "Income & Transfers", icon: ArrowLeftRight },
   { to: "/bills", label: "Bills", icon: Receipt },
+  { to: "/decide", label: "Can I afford it?", icon: ShoppingBag },
+  { to: "/scenarios", label: "Scenarios", icon: GitBranch },
   { to: "/settings", label: "Settings", icon: Settings },
 ] as const;
 
