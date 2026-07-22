@@ -1,0 +1,273 @@
+{
+  "version": 1,
+  "sdk_version": "0.24.0",
+  "path": "/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://tspvmrmovcyvwtythksm.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "cadence-mcp",
+      "version": "0.1.0",
+      "title": "Cadence Personal Finance"
+    },
+    "tools": [
+      {
+        "name": "list_accounts",
+        "title": "List accounts",
+        "description": "List all of the signed-in user's Cadence accounts with balances, minimums, type, and as-of date.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {}
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_rules",
+        "title": "List financial rules",
+        "description": "List the signed-in user's income, expense, transfer, and one-time rules. Optionally filter by rule_type.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "rule_type": {
+              "description": "Optional rule type filter.",
+              "type": "string",
+              "enum": [
+                "income",
+                "expense",
+                "transfer",
+                "one_time"
+              ]
+            },
+            "active_only": {
+              "description": "If true, only return active rules.",
+              "type": "boolean"
+            }
+          }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "create_rule",
+        "title": "Create financial rule",
+        "description": "Create a new income, expense, transfer, or one-time rule for the signed-in user. Amount must be positive; the rule engine assigns sign based on rule_type.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Short name for the rule, e.g. 'Rent' or 'Paycheck'."
+            },
+            "rule_type": {
+              "type": "string",
+              "enum": [
+                "income",
+                "expense",
+                "transfer",
+                "one_time"
+              ]
+            },
+            "amount": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "description": "Positive amount in dollars."
+            },
+            "frequency": {
+              "type": "string",
+              "enum": [
+                "one_time",
+                "weekly",
+                "biweekly",
+                "semimonthly",
+                "monthly",
+                "quarterly",
+                "annually",
+                "custom"
+              ]
+            },
+            "start_date": {
+              "type": "string",
+              "description": "ISO date yyyy-MM-dd of the first occurrence."
+            },
+            "end_date": {
+              "description": "Optional ISO date yyyy-MM-dd for the last allowed occurrence.",
+              "type": "string"
+            },
+            "source_account_id": {
+              "description": "Account debited (expense/transfer).",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "destination_account_id": {
+              "description": "Account credited (income/transfer).",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "day_of_week": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 6
+            },
+            "day_of_month": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 31
+            },
+            "occurrence_limit": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "category": {
+              "type": "string"
+            },
+            "essential": {
+              "type": "boolean"
+            },
+            "notes": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "name",
+            "rule_type",
+            "amount",
+            "frequency",
+            "start_date"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "update_account_balance",
+        "title": "Update account balance",
+        "description": "Set an account's current balance and the balance_as_of date used as the forecast starting reference.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "account_id": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "current_balance": {
+              "type": "number",
+              "description": "Current balance in dollars."
+            },
+            "balance_as_of": {
+              "type": "string",
+              "description": "ISO date yyyy-MM-dd the balance is accurate as of."
+            }
+          },
+          "required": [
+            "account_id",
+            "current_balance",
+            "balance_as_of"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "run_forecast",
+        "title": "Run cash-flow forecast",
+        "description": "Run the Cadence forecast engine for the signed-in user. Returns monthly inflow/outflow, ending balances, and the lowest projected balance per account.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "months": {
+              "description": "How many months forward to project. Default 12.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 24
+            },
+            "start_date": {
+              "description": "Optional ISO start date; defaults to today.",
+              "type": "string"
+            }
+          }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "can_i_afford",
+        "title": "Can I afford it?",
+        "description": "Evaluate a hypothetical purchase against the signed-in user's forecast. Returns safe / warn / unsafe and the projected lowest balance for the chosen account with the purchase applied.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "account_id": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "description": "Account to charge the purchase against."
+            },
+            "amount": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "description": "Total purchase amount in dollars."
+            },
+            "purchase_date": {
+              "type": "string",
+              "description": "ISO date yyyy-MM-dd for the purchase."
+            },
+            "split_months": {
+              "description": "If set >1, split the amount evenly over this many monthly payments starting on purchase_date.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 24
+            }
+          },
+          "required": [
+            "account_id",
+            "amount",
+            "purchase_date"
+          ]
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
