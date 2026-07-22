@@ -36,8 +36,10 @@ export default defineTool({
   handler: async (input, ctx) => {
     if (!ctx.isAuthenticated()) return unauthenticated();
     const supabase = supabaseForUser(ctx);
+    const userId = ctx.getUserId();
+    if (!userId) return unauthenticated();
     const row = {
-      user_id: ctx.getUserId(),
+      user_id: userId,
       name: input.name,
       rule_type: input.rule_type,
       amount: input.amount,
