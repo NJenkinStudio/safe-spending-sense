@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Plus, Trash2 } from "lucide-react";
+import { PlaidConnect } from "@/components/plaid-connect";
 
 export const Route = createFileRoute("/_authenticated/accounts")({
   head: () => ({ meta: [{ title: "Accounts — Cadence" }, { name: "description", content: "Manage your financial accounts and their safety minimums." }] }),
@@ -87,6 +88,7 @@ function AccountsPage() {
           </DialogContent>
         </Dialog>
       </div>
+      <PlaidConnect />
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {(q.data ?? []).map((a) => (
           <Card key={a.id} className="p-5">
@@ -99,6 +101,9 @@ function AccountsPage() {
             </div>
             <div className="mt-4 text-2xl font-semibold" style={{ color: a.color }}>{fmt(Number(a.current_balance))}</div>
             <div className="mt-1 text-xs text-muted-foreground">Minimum {fmt(Number(a.minimum_balance))}</div>
+            {a.institution_name && (
+              <div className="mt-1 text-xs text-muted-foreground">{a.institution_name}</div>
+            )}
             <Button variant="ghost" size="sm" className="mt-3 text-muted-foreground" onClick={() => del(a.id)}>
               <Trash2 className="h-3.5 w-3.5 mr-1" /> Delete
             </Button>
