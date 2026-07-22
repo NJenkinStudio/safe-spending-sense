@@ -19,6 +19,9 @@ export interface Account {
   color: string;
   /** ISO date (yyyy-MM-dd) representing the as-of date for current_balance. */
   balance_as_of?: string | null;
+  institution_name?: string | null;
+  plaid_account_id?: string | null;
+  last_synced_at?: string | null;
 }
 
 export interface FinancialRule {

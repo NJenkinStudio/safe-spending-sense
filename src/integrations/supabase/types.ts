@@ -23,9 +23,13 @@ export type Database = {
           current_balance: number
           id: string
           include_in_forecast: boolean
+          institution_name: string | null
+          last_synced_at: string | null
           minimum_balance: number
           name: string
           notes: string | null
+          plaid_account_id: string | null
+          plaid_item_id: string | null
           updated_at: string
           user_id: string
         }
@@ -37,9 +41,13 @@ export type Database = {
           current_balance?: number
           id?: string
           include_in_forecast?: boolean
+          institution_name?: string | null
+          last_synced_at?: string | null
           minimum_balance?: number
           name: string
           notes?: string | null
+          plaid_account_id?: string | null
+          plaid_item_id?: string | null
           updated_at?: string
           user_id: string
         }
@@ -51,13 +59,25 @@ export type Database = {
           current_balance?: number
           id?: string
           include_in_forecast?: boolean
+          institution_name?: string | null
+          last_synced_at?: string | null
           minimum_balance?: number
           name?: string
           notes?: string | null
+          plaid_account_id?: string | null
+          plaid_item_id?: string | null
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "accounts_plaid_item_id_fkey"
+            columns: ["plaid_item_id"]
+            isOneToOne: false
+            referencedRelation: "plaid_items"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       financial_rules: {
         Row: {
@@ -151,6 +171,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      plaid_items: {
+        Row: {
+          access_token: string
+          created_at: string
+          id: string
+          institution_name: string | null
+          item_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token: string
+          created_at?: string
+          id?: string
+          institution_name?: string | null
+          item_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string
+          created_at?: string
+          id?: string
+          institution_name?: string | null
+          item_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
