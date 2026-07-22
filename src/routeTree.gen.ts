@@ -15,6 +15,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedScenariosRouteImport } from './routes/_authenticated/scenarios'
+import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
 import { Route as AuthenticatedIncomeRouteImport } from './routes/_authenticated/income'
 import { Route as AuthenticatedForecastRouteImport } from './routes/_authenticated/forecast'
 import { Route as AuthenticatedDecideRouteImport } from './routes/_authenticated/decide'
@@ -54,6 +55,11 @@ const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
 const AuthenticatedScenariosRoute = AuthenticatedScenariosRouteImport.update({
   id: '/scenarios',
   path: '/scenarios',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedIncomeRoute = AuthenticatedIncomeRouteImport.update({
@@ -128,6 +134,7 @@ export interface FileRoutesByFullPath {
   '/decide': typeof AuthenticatedDecideRoute
   '/forecast': typeof AuthenticatedForecastRoute
   '/income': typeof AuthenticatedIncomeRoute
+  '/onboarding': typeof AuthenticatedOnboardingRoute
   '/scenarios': typeof AuthenticatedScenariosRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
@@ -146,6 +153,7 @@ export interface FileRoutesByTo {
   '/decide': typeof AuthenticatedDecideRoute
   '/forecast': typeof AuthenticatedForecastRoute
   '/income': typeof AuthenticatedIncomeRoute
+  '/onboarding': typeof AuthenticatedOnboardingRoute
   '/scenarios': typeof AuthenticatedScenariosRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
@@ -166,6 +174,7 @@ export interface FileRoutesById {
   '/_authenticated/decide': typeof AuthenticatedDecideRoute
   '/_authenticated/forecast': typeof AuthenticatedForecastRoute
   '/_authenticated/income': typeof AuthenticatedIncomeRoute
+  '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
   '/_authenticated/scenarios': typeof AuthenticatedScenariosRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
@@ -186,6 +195,7 @@ export interface FileRouteTypes {
     | '/decide'
     | '/forecast'
     | '/income'
+    | '/onboarding'
     | '/scenarios'
     | '/settings'
     | '/.lovable/oauth/consent'
@@ -204,6 +214,7 @@ export interface FileRouteTypes {
     | '/decide'
     | '/forecast'
     | '/income'
+    | '/onboarding'
     | '/scenarios'
     | '/settings'
     | '/.lovable/oauth/consent'
@@ -223,6 +234,7 @@ export interface FileRouteTypes {
     | '/_authenticated/decide'
     | '/_authenticated/forecast'
     | '/_authenticated/income'
+    | '/_authenticated/onboarding'
     | '/_authenticated/scenarios'
     | '/_authenticated/settings'
     | '/.lovable/oauth/consent'
@@ -282,6 +294,13 @@ declare module '@tanstack/react-router' {
       path: '/scenarios'
       fullPath: '/scenarios'
       preLoaderRoute: typeof AuthenticatedScenariosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/onboarding': {
+      id: '/_authenticated/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof AuthenticatedOnboardingRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/income': {
@@ -372,6 +391,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedDecideRoute: typeof AuthenticatedDecideRoute
   AuthenticatedForecastRoute: typeof AuthenticatedForecastRoute
   AuthenticatedIncomeRoute: typeof AuthenticatedIncomeRoute
+  AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
   AuthenticatedScenariosRoute: typeof AuthenticatedScenariosRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
 }
@@ -384,6 +404,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDecideRoute: AuthenticatedDecideRoute,
   AuthenticatedForecastRoute: AuthenticatedForecastRoute,
   AuthenticatedIncomeRoute: AuthenticatedIncomeRoute,
+  AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
   AuthenticatedScenariosRoute: AuthenticatedScenariosRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
 }

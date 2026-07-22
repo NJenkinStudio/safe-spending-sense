@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { addMonths, format, parseISO } from "date-fns";
 import { AreaChart, Area, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
@@ -6,11 +6,8 @@ import { fetchAccounts, fetchRuleChanges, fetchRules } from "@/lib/queries";
 import { runForecast } from "@/lib/forecast/engine";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { seedDemoData } from "@/lib/seed";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-import { useMemo, useState } from "react";
-import { AlertCircle, ArrowUpRight, Sparkles } from "lucide-react";
+import { useMemo } from "react";
+import { AlertCircle, ArrowUpRight } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
@@ -28,7 +25,6 @@ function Dashboard() {
   const accountsQ = useQuery({ queryKey: ["accounts"], queryFn: fetchAccounts });
   const rulesQ = useQuery({ queryKey: ["rules"], queryFn: fetchRules });
   const changesQ = useQuery({ queryKey: ["changes"], queryFn: fetchRuleChanges });
-  const [seeding, setSeeding] = useState(false);
 
   const forecast = useMemo(() => {
     if (!accountsQ.data || !rulesQ.data || !changesQ.data) return null;
@@ -41,38 +37,13 @@ function Dashboard() {
     });
   }, [accountsQ.data, rulesQ.data, changesQ.data]);
 
-  const seed = async () => {
-    setSeeding(true);
-    try {
-      const { data } = await supabase.auth.getUser();
-      if (!data.user) return;
-      await seedDemoData(data.user.id);
-      toast.success("Demo data loaded");
-      accountsQ.refetch(); rulesQ.refetch(); changesQ.refetch();
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Seed failed");
-    } finally { setSeeding(false); }
-  };
-
   if (accountsQ.isLoading || rulesQ.isLoading) {
     return <div className="text-muted-foreground">Loading…</div>;
   }
 
   const accounts = accountsQ.data ?? [];
   if (!accounts.length) {
-    return (
-      <div className="max-w-2xl">
-        <h1 className="text-3xl font-semibold tracking-tight">Welcome to Cadence</h1>
-        <p className="mt-2 text-muted-foreground">Start by adding your accounts, income, and bills — or load a demo to explore.</p>
-        <div className="mt-6 flex gap-3">
-          <Button onClick={seed} disabled={seeding}>
-            <Sparkles className="h-4 w-4 mr-2" />
-            {seeding ? "Loading demo…" : "Load demo data"}
-          </Button>
-          <a href="/accounts"><Button variant="outline">Add accounts</Button></a>
-        </div>
-      </div>
-    );
+    return <Navigate to="/onboarding" />;
   }
 
   const upcoming = (forecast?.events ?? []).slice(0, 10);
