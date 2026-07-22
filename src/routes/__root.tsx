@@ -104,6 +104,7 @@ function RootShell({ children }: { children: ReactNode }) {
     <html lang="en">
       <head>
         <HeadContent />
+        <script dangerouslySetInnerHTML={{ __html: getPublicBackendEnvScript() }} />
       </head>
       <body>
         {children}
@@ -111,6 +112,27 @@ function RootShell({ children }: { children: ReactNode }) {
       </body>
     </html>
   );
+}
+
+function getPublicBackendEnvScript() {
+  const env = getPublicBackendEnv();
+  return `window.process=window.process||{};window.process.env={...(window.process.env||{}),...${JSON.stringify(
+    env,
+  )}};`;
+}
+
+function getPublicBackendEnv() {
+  const runtimeEnv = typeof process !== "undefined" ? process.env : {};
+  const url = import.meta.env.VITE_SUPABASE_URL || runtimeEnv.SUPABASE_URL || "";
+  const publishableKey =
+    import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || runtimeEnv.SUPABASE_PUBLISHABLE_KEY || "";
+
+  return {
+    SUPABASE_URL: url,
+    SUPABASE_PUBLISHABLE_KEY: publishableKey,
+    VITE_SUPABASE_URL: url,
+    VITE_SUPABASE_PUBLISHABLE_KEY: publishableKey,
+  };
 }
 
 function RootComponent() {
