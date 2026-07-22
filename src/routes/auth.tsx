@@ -9,6 +9,10 @@ import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/auth")({
+  validateSearch: (s: Record<string, unknown>): { next?: string } => {
+    const next = typeof s.next === "string" ? s.next : undefined;
+    return next ? { next } : {};
+  },
   head: () => ({
     meta: [
       { title: "Sign in — Cadence" },
@@ -20,6 +24,8 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const navigate = useNavigate();
+  const { next } = Route.useSearch();
+  const safeNext = next && next.startsWith("/") && !next.startsWith("//") ? next : "/dashboard";
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -27,9 +33,9 @@ function AuthPage() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/dashboard" });
+      if (data.session) window.location.href = safeNext;
     });
-  }, [navigate]);
+  }, [navigate, safeNext]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,7 +45,7 @@ function AuthPage() {
         const { error } = await supabase.auth.signUp({
           email,
           password,
-          options: { emailRedirectTo: window.location.origin + "/dashboard" },
+          options: { emailRedirectTo: window.location.origin + safeNext },
         });
         if (error) throw error;
         toast.success("Account created.");
@@ -47,7 +53,7 @@ function AuthPage() {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
       }
-      navigate({ to: "/dashboard" });
+      window.location.href = safeNext;
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Authentication failed");
     } finally {
@@ -56,7 +62,9 @@ function AuthPage() {
   };
 
   const google = async () => {
-    const res = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
+    const res = await lovable.auth.signInWithOAuth("google", {
+      redirect_uri: window.location.origin + safeNext,
+    });
     if (res.error) toast.error(res.error.message ?? "Google sign-in failed");
   };
 
