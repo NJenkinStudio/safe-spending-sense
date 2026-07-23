@@ -7,9 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { RuleForm } from "@/components/rule-form";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Pencil } from "lucide-react";
 import { toast } from "sonner";
-import type { RuleType } from "@/lib/forecast/types";
+import type { RuleType, FinancialRule } from "@/lib/forecast/types";
 
 export const Route = createFileRoute("/_authenticated/income")({
   head: () => ({ meta: [{ title: "Income & Transfers — Cadence" }, { name: "description", content: "Recurring paychecks, deposits, and transfers between accounts." }] }),
@@ -23,6 +23,7 @@ function IncomePage() {
   const accountsQ = useQuery({ queryKey: ["accounts"], queryFn: fetchAccounts });
   const rulesQ = useQuery({ queryKey: ["rules"], queryFn: fetchRules });
   const [open, setOpen] = useState<null | RuleType>(null);
+  const [editing, setEditing] = useState<FinancialRule | null>(null);
   const del = async (id: string) => {
     if (!confirm("Delete rule?")) return;
     await supabase.from("financial_rules").delete().eq("id", id);
@@ -76,12 +77,26 @@ function IncomePage() {
                   <div className={`font-medium ${r.rule_type === "income" ? "text-success" : ""}`}>{fmt(Number(r.amount))}</div>
                   <div className="text-[11px] text-muted-foreground">{r.rule_type}</div>
                 </div>
+                <Button size="icon" variant="ghost" onClick={() => setEditing(r)}><Pencil className="h-4 w-4" /></Button>
                 <Button size="icon" variant="ghost" onClick={() => del(r.id)}><Trash2 className="h-4 w-4" /></Button>
               </div>
             </div>
           );
         })}
       </Card>
+      <Dialog open={!!editing} onOpenChange={(v) => !v && setEditing(null)}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Edit {editing?.rule_type} rule</DialogTitle></DialogHeader>
+          {editing && (
+            <RuleForm
+              ruleType={editing.rule_type as RuleType}
+              accounts={accts}
+              initial={editing}
+              onSaved={() => { setEditing(null); qc.invalidateQueries({ queryKey: ["rules"] }); }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
