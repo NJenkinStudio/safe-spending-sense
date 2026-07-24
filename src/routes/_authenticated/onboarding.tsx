@@ -3,8 +3,16 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { seedDemoData } from "@/lib/seed";
-import { fetchAccounts, fetchOnboardingResponses, fetchProfile, fetchRuleChanges, fetchRules } from "@/lib/queries";
+import { removeDemoData, seedDemoData } from "@/lib/seed";
+import {
+  countDemoRecords,
+  fetchAccounts,
+  fetchOnboardingResponses,
+  fetchPlanningGoals,
+  fetchProfile,
+  fetchRuleChanges,
+  fetchRules,
+} from "@/lib/queries";
 import { Stepper, type StepMeta } from "@/components/onboarding/stepper";
 import { AboutYouStep } from "@/components/onboarding/steps/about-you";
 import { WhatIsCadenceStep } from "@/components/onboarding/steps/what-is-cadence";
@@ -38,7 +46,7 @@ export const Route = createFileRoute("/_authenticated/onboarding")({
 
 const STEP_LIST: StepMeta[] = [
   { id: "about", label: "About you" },
-  { id: "what", label: "How Cadence works" },
+  { id: "what-is-cadence", label: "How Cadence works" },
   { id: "habits", label: "Your habits" },
   { id: "goal", label: "Planning goal", optional: true },
   { id: "summary", label: "Personalization" },
@@ -47,6 +55,8 @@ const STEP_LIST: StepMeta[] = [
   { id: "buying-power", label: "Buying Power" },
   { id: "welcome", label: "Welcome" },
 ];
+
+const PLANNING_GOAL_OPTION = "plan-goals";
 
 function Onboarding() {
   const navigate = useNavigate();
@@ -57,12 +67,23 @@ function Onboarding() {
   const accountsQ = useQuery({ queryKey: ["accounts"], queryFn: fetchAccounts });
   const rulesQ = useQuery({ queryKey: ["rules"], queryFn: fetchRules });
   const changesQ = useQuery({ queryKey: ["rule_changes"], queryFn: fetchRuleChanges });
+  const goalsQ = useQuery({ queryKey: ["planning_goals"], queryFn: fetchPlanningGoals });
 
   const [stepIndex, setStepIndex] = useState(0);
   const [busy, setBusy] = useState(false);
   const [profile, setProfile] = useState<OnboardingProfile>(EMPTY_PROFILE);
   const [responses, setResponses] = useState<OnboardingResponses>(EMPTY_RESPONSES);
   const [goal, setGoal] = useState<PlanningGoalDraft>(EMPTY_GOAL);
+
+  const steps = useMemo(() => {
+    const includePlanning = responses.primary_financial_goals.includes(PLANNING_GOAL_OPTION);
+    return STEP_LIST.filter((s) => s.id !== "goal" || includePlanning);
+  }, [responses.primary_financial_goals]);
+
+  // Clamp step index whenever the visible step list shrinks/grows.
+  useEffect(() => {
+    if (stepIndex > steps.length - 1) setStepIndex(steps.length - 1);
+  }, [steps.length, stepIndex]);
 
   // Hydrate from server on first load
   useEffect(() => {
@@ -105,10 +126,10 @@ function Onboarding() {
 
   const uid = async () => (await supabase.auth.getUser()).data.user?.id ?? null;
 
-  const persistProfile = async () => {
+  const persistProfile = async (): Promise<boolean> => {
     const id = await uid();
-    if (!id) return;
-    await supabase.from("profiles").update({
+    if (!id) return false;
+    const { error } = await supabase.from("profiles").update({
       first_name: profile.first_name || null,
       last_name: profile.last_name || null,
       preferred_name: profile.preferred_name || null,
@@ -119,13 +140,18 @@ function Onboarding() {
       preferred_currency: profile.preferred_currency || "USD",
       display_name: (profile.preferred_name || profile.first_name || "").trim() || null,
     }).eq("id", id);
+    if (error) {
+      toast.error(`Could not save profile: ${error.message}`);
+      return false;
+    }
     qc.invalidateQueries({ queryKey: ["profile"] });
+    return true;
   };
 
-  const persistResponses = async (nextIndex: number) => {
+  const persistResponses = async (nextIndex: number): Promise<boolean> => {
     const id = await uid();
-    if (!id) return;
-    await supabase.from("onboarding_responses").upsert({
+    if (!id) return false;
+    const { error } = await supabase.from("onboarding_responses").upsert({
       user_id: id,
       current_step: nextIndex,
       money_management_style: responses.money_management_style || null,
@@ -143,13 +169,19 @@ function Onboarding() {
       all_accounts_added: responses.all_accounts_added || null,
       account_setup_completeness: responses.account_setup_completeness || null,
     } as never, { onConflict: "user_id" });
+    if (error) {
+      toast.error(`Could not save your answers: ${error.message}`);
+      return false;
+    }
+    return true;
   };
 
   const advance = async (delta = 1) => {
-    const next = Math.min(Math.max(0, stepIndex + delta), STEP_LIST.length - 1);
+    const next = Math.min(Math.max(0, stepIndex + delta), steps.length - 1);
     setBusy(true);
     try {
-      await persistResponses(next);
+      const ok = await persistResponses(next);
+      if (!ok) return;
       setStepIndex(next);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } finally {
@@ -157,11 +189,11 @@ function Onboarding() {
     }
   };
 
-  const saveGoal = async () => {
+  const saveGoal = async (): Promise<boolean> => {
     const id = await uid();
-    if (!id) return;
-    if (!goal.name.trim() || !Number(goal.target_amount)) return;
-    await supabase.from("planning_goals").insert({
+    if (!id) return false;
+    if (!goal.name.trim() || !Number(goal.target_amount)) return true;
+    const { error } = await supabase.from("planning_goals").insert({
       user_id: id,
       name: goal.name.trim(),
       target_amount: Number(goal.target_amount),
@@ -169,7 +201,13 @@ function Onboarding() {
       desired_date: goal.desired_date || null,
       category: goal.category || null,
     } as never);
+    if (error) {
+      toast.error(`Could not save your goal: ${error.message}`);
+      return false;
+    }
     setResponses((r) => ({ ...r, planning_goal_enabled: true }));
+    qc.invalidateQueries({ queryKey: ["planning_goals"] });
+    return true;
   };
 
   const loadDemo = async () => {
@@ -177,8 +215,16 @@ function Onboarding() {
     try {
       const id = await uid();
       if (!id) throw new Error("Not signed in");
+      const existing = await countDemoRecords();
+      if (existing > 0) {
+        await removeDemoData(id);
+      }
       await seedDemoData(id);
-      await supabase.from("profiles").update({ onboarding_completed_at: new Date().toISOString() }).eq("id", id);
+      const { error } = await supabase
+        .from("profiles")
+        .update({ onboarding_completed_at: new Date().toISOString() })
+        .eq("id", id);
+      if (error) throw error;
       await qc.invalidateQueries();
       toast.success("Sample workspace loaded. You can remove it anytime from Settings.");
       navigate({ to: "/dashboard" });
@@ -191,10 +237,20 @@ function Onboarding() {
 
   const finish = async () => {
     const id = await uid();
-    if (id) {
-      await supabase.from("profiles").update({ onboarding_completed_at: new Date().toISOString() }).eq("id", id);
-      qc.invalidateQueries({ queryKey: ["profile"] });
+    if (!id) return;
+    if ((accountsQ.data ?? []).length === 0) {
+      toast.error("Add at least one account before finishing setup.");
+      return;
     }
+    const { error } = await supabase
+      .from("profiles")
+      .update({ onboarding_completed_at: new Date().toISOString() })
+      .eq("id", id);
+    if (error) {
+      toast.error(`Could not finish setup: ${error.message}`);
+      return;
+    }
+    qc.invalidateQueries({ queryKey: ["profile"] });
     navigate({ to: "/dashboard" });
   };
 
@@ -217,11 +273,15 @@ function Onboarding() {
     ]);
   };
 
-  const currentId = STEP_LIST[stepIndex].id;
+  const currentId = steps[stepIndex]?.id ?? steps[0].id;
+  const planningGoal =
+    (goalsQ.data ?? []).find((g) => g.name === goal.name.trim() && Number(g.target_amount) === Number(goal.target_amount)) ??
+    (goalsQ.data ?? [])[0] ??
+    null;
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      <Stepper steps={STEP_LIST} currentIndex={stepIndex} />
+      <Stepper steps={steps} currentIndex={stepIndex} />
 
       {currentId === "about" && (
         <AboutYouStep
@@ -229,7 +289,7 @@ function Onboarding() {
           onChange={setProfile}
           busy={busy}
           onNext={async () => {
-            await persistProfile();
+            if (!(await persistProfile())) return;
             await advance(1);
           }}
         />
@@ -263,7 +323,7 @@ function Onboarding() {
           onSkip={() => advance(1)}
           busy={busy}
           onNext={async () => {
-            await saveGoal();
+            if (!(await saveGoal())) return;
             await advance(1);
           }}
         />
@@ -302,6 +362,7 @@ function Onboarding() {
         <BuyingPowerRevealStep
           summary={buyingPower}
           name={displayName}
+          planningGoal={planningGoal as { name: string; target_amount: number | string; amount_already_saved: number | string | null } | null}
           onBack={() => advance(-1)}
           onNext={() => advance(1)}
         />
