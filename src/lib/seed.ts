@@ -17,16 +17,16 @@ export async function seedDemoData(userId: string) {
   const { data: accounts, error: aErr } = await supabase
     .from("accounts")
     .insert([
-      { user_id: userId, name: "Main Account", account_type: "checking", current_balance: 0, minimum_balance: 100, color: "#7A9A7E" },
-      { user_id: userId, name: "Bills Account", account_type: "bills_checking", current_balance: 251.31, minimum_balance: 500, color: "#B8985C" },
+      { user_id: userId, name: "Main Account (demo)", account_type: "checking", current_balance: 0, minimum_balance: 100, color: "#7A9A7E", is_demo: true },
+      { user_id: userId, name: "Bills Account (demo)", account_type: "bills_checking", current_balance: 251.31, minimum_balance: 500, color: "#B8985C", is_demo: true },
     ])
     .select();
   if (aErr) throw aErr;
-  const main = accounts!.find((a) => a.name === "Main Account")!;
-  const bills = accounts!.find((a) => a.name === "Bills Account")!;
+  const main = accounts!.find((a) => a.name.startsWith("Main"))!;
+  const bills = accounts!.find((a) => a.name.startsWith("Bills"))!;
   const friday = nextFriday();
 
-  const rules = [
+  const rules = ([
     { user_id: userId, rule_type: "income", name: "Weekly Paycheck", destination_account_id: main.id, amount: 840, frequency: "weekly", start_date: friday, day_of_week: 5, confidence_level: "confirmed" },
     { user_id: userId, rule_type: "transfer", name: "Weekly Bills Transfer", source_account_id: main.id, destination_account_id: bills.id, amount: 500, frequency: "weekly", start_date: friday, day_of_week: 5 },
     { user_id: userId, rule_type: "income", name: "Monthly Bills Deposit", destination_account_id: bills.id, amount: 900, frequency: "monthly", start_date: firstNextMonth, day_of_month: 1, occurrence_limit: 12 },
@@ -38,8 +38,11 @@ export async function seedDemoData(userId: string) {
     { user_id: userId, rule_type: "expense", name: "Internet", source_account_id: bills.id, amount: 75, frequency: "monthly", start_date: firstNextMonth, day_of_month: 5, essential: true, category: "utilities" },
     { user_id: userId, rule_type: "expense", name: "Electric", source_account_id: bills.id, amount: 120, frequency: "monthly", start_date: firstNextMonth, day_of_month: 10, essential: true, fixed_or_variable: "variable", category: "utilities" },
     { user_id: userId, rule_type: "expense", name: "Streaming", source_account_id: bills.id, amount: 18.99, frequency: "monthly", start_date: today, day_of_month: 15, essential: false, category: "subscription" },
-  ];
-  const { data: insertedRules, error: rErr } = await supabase.from("financial_rules").insert(rules).select();
+  ] as Array<Record<string, unknown>>).map((r) => ({ ...r, is_demo: true }));
+  const { data: insertedRules, error: rErr } = await supabase
+    .from("financial_rules")
+    .insert(rules as never)
+    .select();
   if (rErr) throw rErr;
 
   const insurance = insertedRules!.find((r) => r.name === "Insurance");
@@ -53,6 +56,18 @@ export async function seedDemoData(userId: string) {
       old_value: "354.95",
       new_value: "305",
       notes: "Policy reduction after 5 payments",
+      is_demo: true,
     });
   }
+}
+
+/**
+ * Remove every record that was inserted by `seedDemoData` for this user.
+ * Real (non-demo) records are untouched.
+ */
+export async function removeDemoData(userId: string) {
+  // rule_changes first (FK ordering not strictly required with cascade, but safe)
+  await supabase.from("rule_changes").delete().eq("user_id", userId).eq("is_demo", true);
+  await supabase.from("financial_rules").delete().eq("user_id", userId).eq("is_demo", true);
+  await supabase.from("accounts").delete().eq("user_id", userId).eq("is_demo", true);
 }
