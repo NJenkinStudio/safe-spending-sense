@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -49,17 +49,6 @@ function SettingsPage() {
   return (
     <div className="space-y-5 max-w-xl">
       <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
-      <Card className="p-5 space-y-3">
-        <div>
-          <div className="font-medium">Onboarding</div>
-          <p className="text-sm text-muted-foreground">Revisit the personalized setup flow anytime.</p>
-        </div>
-        <div>
-          <Button asChild variant="outline">
-            <Link to="/onboarding">Open onboarding</Link>
-          </Button>
-        </div>
-      </Card>
       <Card className="p-5 space-y-3">
         <div>
           <div className="font-medium">Sample workspace</div>

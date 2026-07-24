@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Navigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -22,7 +22,6 @@ import { SummaryStep } from "@/components/onboarding/steps/summary";
 import { SetupStep } from "@/components/onboarding/steps/setup";
 import { CompletenessStep } from "@/components/onboarding/steps/completeness";
 import { BuyingPowerRevealStep } from "@/components/onboarding/steps/buying-power";
-import { WelcomeStep } from "@/components/onboarding/steps/welcome";
 import {
   EMPTY_GOAL,
   EMPTY_PROFILE,
@@ -53,7 +52,6 @@ const STEP_LIST: StepMeta[] = [
   { id: "setup", label: "Setup" },
   { id: "completeness", label: "Completeness" },
   { id: "buying-power", label: "Buying Power" },
-  { id: "welcome", label: "Welcome" },
 ];
 
 const PLANNING_GOAL_OPTION = "plan-goals";
@@ -68,6 +66,12 @@ function Onboarding() {
   const rulesQ = useQuery({ queryKey: ["rules"], queryFn: fetchRules });
   const changesQ = useQuery({ queryKey: ["rule_changes"], queryFn: fetchRuleChanges });
   const goalsQ = useQuery({ queryKey: ["planning_goals"], queryFn: fetchPlanningGoals });
+
+  // One-time initialization: once onboarding is complete, this route is off-limits.
+  const completed = !!profileQ.data?.onboarding_completed_at || profileQ.data?.setup_status === "active";
+  if (completed) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   const [stepIndex, setStepIndex] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -244,7 +248,11 @@ function Onboarding() {
     }
     const { error } = await supabase
       .from("profiles")
-      .update({ onboarding_completed_at: new Date().toISOString() })
+      .update({
+        onboarding_completed_at: new Date().toISOString(),
+        setup_status: "active",
+        onboarding_version: 1,
+      } as never)
       .eq("id", id);
     if (error) {
       toast.error(`Could not finish setup: ${error.message}`);
@@ -364,11 +372,9 @@ function Onboarding() {
           name={displayName}
           planningGoal={planningGoal as { name: string; target_amount: number | string; amount_already_saved: number | string | null } | null}
           onBack={() => advance(-1)}
-          onNext={() => advance(1)}
+          onNext={finish}
         />
       )}
-
-      {currentId === "welcome" && <WelcomeStep name={displayName} onFinish={finish} />}
     </div>
   );
 }

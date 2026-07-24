@@ -326,6 +326,7 @@ export type Database = {
           onboarding_version: number
           preferred_currency: string | null
           preferred_name: string | null
+          setup_status: string
           updated_at: string
         }
         Insert: {
@@ -343,6 +344,7 @@ export type Database = {
           onboarding_version?: number
           preferred_currency?: string | null
           preferred_name?: string | null
+          setup_status?: string
           updated_at?: string
         }
         Update: {
@@ -360,6 +362,7 @@ export type Database = {
           onboarding_version?: number
           preferred_currency?: string | null
           preferred_name?: string | null
+          setup_status?: string
           updated_at?: string
         }
         Relationships: []
