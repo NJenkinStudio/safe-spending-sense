@@ -7,14 +7,22 @@ function fmt(n: number) {
   return n.toLocaleString(undefined, { style: "currency", currency: "USD" });
 }
 
+export interface OnboardingPlanningGoal {
+  name: string;
+  target_amount: number | string;
+  amount_already_saved: number | string | null;
+}
+
 export function BuyingPowerRevealStep({
   summary,
   name,
+  planningGoal,
   onBack,
   onNext,
 }: {
   summary: BuyingPowerSummary | null;
   name: string;
+  planningGoal?: OnboardingPlanningGoal | null;
   onBack: () => void;
   onNext: () => void;
 }) {
@@ -27,6 +35,17 @@ export function BuyingPowerRevealStep({
   }
 
   const negative = summary.isNegative;
+
+  const goalBlock = (() => {
+    if (!planningGoal) return null;
+    const target = Number(planningGoal.target_amount) || 0;
+    const saved = Number(planningGoal.amount_already_saved ?? 0) || 0;
+    const remaining = Math.max(0, target - saved);
+    const contribution = 100;
+    const progressBefore = target > 0 ? Math.min(1, saved / target) : 0;
+    const progressAfter = target > 0 ? Math.min(1, (saved + contribution) / target) : 0;
+    return { target, saved, remaining, contribution, progressBefore, progressAfter };
+  })();
 
   return (
     <Card className="p-6 space-y-5">
@@ -58,6 +77,41 @@ export function BuyingPowerRevealStep({
         <div className="rounded-md border border-primary/30 bg-primary/5 p-3 text-sm">
           You have {fmt(summary.buyingPower)} in Buying Power. That's what's actually available to spend
           today without breaking your plan.
+        </div>
+      )}
+
+      {planningGoal && goalBlock && (
+        <div className="rounded-lg border p-4 space-y-3">
+          <div>
+            <div className="text-xs uppercase tracking-wider text-muted-foreground">Planning goal</div>
+            <div className="text-lg font-semibold mt-1">{planningGoal.name}</div>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3 text-sm">
+            <div>
+              <div className="text-xs text-muted-foreground">Target</div>
+              <div className="font-medium">{fmt(goalBlock.target)}</div>
+            </div>
+            <div>
+              <div className="text-xs text-muted-foreground">Already saved</div>
+              <div className="font-medium">{fmt(goalBlock.saved)}</div>
+            </div>
+            <div>
+              <div className="text-xs text-muted-foreground">Remaining</div>
+              <div className="font-medium">{fmt(goalBlock.remaining)}</div>
+            </div>
+          </div>
+          <div className="rounded-md bg-muted/40 p-3 text-sm">
+            <div className="font-medium">If you put {fmt(goalBlock.contribution)} toward this goal today</div>
+            <ul className="mt-1 text-muted-foreground space-y-0.5">
+              <li>
+                Buying Power: {fmt(summary.buyingPower)} → {fmt(summary.buyingPower - goalBlock.contribution)}
+              </li>
+              <li>
+                Goal progress: {(goalBlock.progressBefore * 100).toFixed(1)}% → {(goalBlock.progressAfter * 100).toFixed(1)}%
+                {" "}({fmt(goalBlock.saved)} → {fmt(goalBlock.saved + goalBlock.contribution)} of {fmt(goalBlock.target)})
+              </li>
+            </ul>
+          </div>
         </div>
       )}
 

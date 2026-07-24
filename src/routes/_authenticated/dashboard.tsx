@@ -44,7 +44,7 @@ function Dashboard() {
 
   const accounts = accountsQ.data ?? [];
   const onboarded = !!profileQ.data?.onboarding_completed_at;
-  if (!onboarded && !accounts.length) {
+  if (!onboarded) {
     return <Navigate to="/onboarding" />;
   }
 
