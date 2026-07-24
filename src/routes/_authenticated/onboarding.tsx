@@ -66,38 +66,40 @@ function Onboarding() {
 
   // Hydrate from server on first load
   useEffect(() => {
-    if (profileQ.data) {
-      setProfile((p) => ({
-        ...p,
-        first_name: profileQ.data.first_name ?? "",
-        last_name: profileQ.data.last_name ?? "",
-        preferred_name: profileQ.data.preferred_name ?? "",
-        age_range: profileQ.data.age_range ?? "",
-        occupation: profileQ.data.occupation ?? "",
-        employment_status: profileQ.data.employment_status ?? "",
-        household_status: profileQ.data.household_status ?? "",
-        preferred_currency: profileQ.data.preferred_currency ?? "USD",
+    const _p = profileQ.data;
+    if (_p) {
+      setProfile((prev) => ({
+        ...prev,
+        first_name: _p.first_name ?? "",
+        last_name: _p.last_name ?? "",
+        preferred_name: _p.preferred_name ?? "",
+        age_range: _p.age_range ?? "",
+        occupation: _p.occupation ?? "",
+        employment_status: _p.employment_status ?? "",
+        household_status: _p.household_status ?? "",
+        preferred_currency: _p.preferred_currency ?? "USD",
       }));
     }
-    if (responsesQ.data) {
-      setResponses((r) => ({
-        ...r,
-        money_management_style: responsesQ.data.money_management_style ?? "",
-        current_budgeting_app: responsesQ.data.current_budgeting_app ?? "",
-        account_structure: responsesQ.data.account_structure ?? "",
-        income_predictability: responsesQ.data.income_predictability ?? "",
-        spending_confidence: responsesQ.data.spending_confidence ?? "",
-        bill_preparation_style: responsesQ.data.bill_preparation_style ?? "",
-        primary_financial_goals: responsesQ.data.primary_financial_goals ?? [],
-        planning_goal_enabled: responsesQ.data.planning_goal_enabled ?? false,
-        all_bills_added: responsesQ.data.all_bills_added ?? "",
-        estimated_bills_remaining: responsesQ.data.estimated_bills_remaining ?? null,
-        all_income_sources_added: responsesQ.data.all_income_sources_added ?? "",
-        estimated_income_sources_remaining: responsesQ.data.estimated_income_sources_remaining ?? null,
-        all_accounts_added: responsesQ.data.all_accounts_added ?? "",
-        account_setup_completeness: responsesQ.data.account_setup_completeness ?? "",
+    const _r = responsesQ.data;
+    if (_r) {
+      setResponses((prev) => ({
+        ...prev,
+        money_management_style: _r.money_management_style ?? "",
+        current_budgeting_app: _r.current_budgeting_app ?? "",
+        account_structure: _r.account_structure ?? "",
+        income_predictability: _r.income_predictability ?? "",
+        spending_confidence: _r.spending_confidence ?? "",
+        bill_preparation_style: _r.bill_preparation_style ?? "",
+        primary_financial_goals: _r.primary_financial_goals ?? [],
+        planning_goal_enabled: _r.planning_goal_enabled ?? false,
+        all_bills_added: _r.all_bills_added ?? "",
+        estimated_bills_remaining: _r.estimated_bills_remaining ?? null,
+        all_income_sources_added: _r.all_income_sources_added ?? "",
+        estimated_income_sources_remaining: _r.estimated_income_sources_remaining ?? null,
+        all_accounts_added: _r.all_accounts_added ?? "",
+        account_setup_completeness: _r.account_setup_completeness ?? "",
       }));
-      if (responsesQ.data.current_step) setStepIndex(responsesQ.data.current_step);
+      if (_r.current_step) setStepIndex(_r.current_step);
     }
   }, [profileQ.data, responsesQ.data]);
 
