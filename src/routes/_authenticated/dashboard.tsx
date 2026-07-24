@@ -2,7 +2,7 @@ import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { addMonths, format, parseISO } from "date-fns";
 import { AreaChart, Area, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
-import { fetchAccounts, fetchRuleChanges, fetchRules } from "@/lib/queries";
+import { fetchAccounts, fetchProfile, fetchRuleChanges, fetchRules } from "@/lib/queries";
 import { runForecast } from "@/lib/forecast/engine";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,7 @@ function Dashboard() {
   const accountsQ = useQuery({ queryKey: ["accounts"], queryFn: fetchAccounts });
   const rulesQ = useQuery({ queryKey: ["rules"], queryFn: fetchRules });
   const changesQ = useQuery({ queryKey: ["changes"], queryFn: fetchRuleChanges });
+  const profileQ = useQuery({ queryKey: ["profile"], queryFn: fetchProfile });
 
   const forecast = useMemo(() => {
     if (!accountsQ.data || !rulesQ.data || !changesQ.data) return null;
@@ -37,12 +38,13 @@ function Dashboard() {
     });
   }, [accountsQ.data, rulesQ.data, changesQ.data]);
 
-  if (accountsQ.isLoading || rulesQ.isLoading) {
+  if (accountsQ.isLoading || rulesQ.isLoading || profileQ.isLoading) {
     return <div className="text-muted-foreground">Loading…</div>;
   }
 
   const accounts = accountsQ.data ?? [];
-  if (!accounts.length) {
+  const onboarded = !!profileQ.data?.onboarding_completed_at;
+  if (!onboarded && !accounts.length) {
     return <Navigate to="/onboarding" />;
   }
 

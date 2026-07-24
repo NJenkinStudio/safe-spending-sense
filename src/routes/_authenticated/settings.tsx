@@ -1,10 +1,11 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { seedDemoData } from "@/lib/seed";
+import { seedDemoData, removeDemoData } from "@/lib/seed";
 import { toast } from "sonner";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { countDemoRecords } from "@/lib/queries";
 
 export const Route = createFileRoute("/_authenticated/settings")({
   head: () => ({ meta: [{ title: "Settings — Cadence" }, { name: "description", content: "Account settings and demo tools." }] }),
@@ -13,12 +14,25 @@ export const Route = createFileRoute("/_authenticated/settings")({
 
 function SettingsPage() {
   const qc = useQueryClient();
+  const demoQ = useQuery({ queryKey: ["demo_count"], queryFn: countDemoRecords });
   const loadDemo = async () => {
     const { data } = await supabase.auth.getUser();
     if (!data.user) return;
     try {
       await seedDemoData(data.user.id);
-      toast.success("Demo data added");
+      toast.success("Sample workspace added");
+      qc.invalidateQueries();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed");
+    }
+  };
+  const removeDemo = async () => {
+    const { data } = await supabase.auth.getUser();
+    if (!data.user) return;
+    if (!confirm("Remove all sample workspace records? Your real data will not be touched.")) return;
+    try {
+      await removeDemoData(data.user.id);
+      toast.success("Sample workspace removed");
       qc.invalidateQueries();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed");
@@ -37,12 +51,27 @@ function SettingsPage() {
       <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
       <Card className="p-5 space-y-3">
         <div>
-          <div className="font-medium">Demo data</div>
-          <p className="text-sm text-muted-foreground">Populate your workspace with the two-account example.</p>
+          <div className="font-medium">Onboarding</div>
+          <p className="text-sm text-muted-foreground">Revisit the personalized setup flow anytime.</p>
         </div>
-        <div className="flex gap-2">
-          <Button onClick={loadDemo}>Load demo data</Button>
-          <Button variant="outline" onClick={wipe}>Clear all data</Button>
+        <div>
+          <Button asChild variant="outline">
+            <Link to="/onboarding">Open onboarding</Link>
+          </Button>
+        </div>
+      </Card>
+      <Card className="p-5 space-y-3">
+        <div>
+          <div className="font-medium">Sample workspace</div>
+          <p className="text-sm text-muted-foreground">
+            Sample records are labeled and kept separate from your real data. You currently have{" "}
+            <span className="text-foreground font-medium">{demoQ.data ?? 0}</span> sample records.
+          </p>
+        </div>
+        <div className="flex gap-2 flex-wrap">
+          <Button onClick={loadDemo}>Load sample workspace</Button>
+          <Button variant="outline" onClick={removeDemo} disabled={!demoQ.data}>Remove sample only</Button>
+          <Button variant="destructive" onClick={wipe}>Clear all data</Button>
         </div>
       </Card>
     </div>
