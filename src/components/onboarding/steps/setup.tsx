@@ -32,6 +32,11 @@ export function SetupStep({
   const [sub, setSub] = useState<SubStep>("accounts");
   const today = new Date().toISOString().slice(0, 10);
 
+  // Locally retain the accounts we just inserted so subsequent income/bill
+  // saves don't depend on a possibly-stale accounts prop.
+  const [createdPrimary, setCreatedPrimary] = useState<{ id: string; account_type: string } | null>(null);
+  const [createdBills, setCreatedBills] = useState<{ id: string; account_type: string } | null>(null);
+
   const [primary, setPrimary] = useState({
     name: "Main checking",
     account_type: "checking",
@@ -88,8 +93,17 @@ export function SetupStep({
           balance_as_of: today,
         });
       }
-      const { error } = await supabase.from("accounts").insert(rows as never);
+      const { data: inserted, error } = await supabase
+        .from("accounts")
+        .insert(rows as never)
+        .select("id, name, account_type");
       if (error) throw error;
+      const primaryRow = (inserted ?? []).find((r) => r.name === primary.name.trim());
+      const billsRow = needsSecondAccount
+        ? (inserted ?? []).find((r) => r.name === secondary.name.trim())
+        : null;
+      if (primaryRow) setCreatedPrimary({ id: primaryRow.id, account_type: primaryRow.account_type });
+      if (billsRow) setCreatedBills({ id: billsRow.id, account_type: billsRow.account_type });
       await onRefresh();
       setSub("income");
     } catch (e) {
@@ -100,7 +114,10 @@ export function SetupStep({
   };
 
   const saveIncome = async () => {
-    const acct = accounts[0];
+    const acct =
+      createdPrimary ??
+      accounts[0] ??
+      null;
     if (!acct) return toast.error("Add an account first");
     if (!income.amount) return toast.error("Enter an income amount");
     setBusy(true);
@@ -129,7 +146,12 @@ export function SetupStep({
   };
 
   const saveBill = async () => {
-    const billAcct = accounts.find((a) => a.account_type === "bills_checking") ?? accounts[0];
+    const billAcct =
+      (createdBills ?? null) ??
+      accounts.find((a) => a.account_type === "bills_checking") ??
+      createdPrimary ??
+      accounts[0] ??
+      null;
     if (!billAcct) return toast.error("Add an account first");
     if (!bill.amount) return toast.error("Enter a bill amount");
     const dom = Number(bill.day_of_month);
