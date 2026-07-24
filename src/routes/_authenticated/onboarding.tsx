@@ -1,70 +1,174 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
-import { fetchAccounts } from "@/lib/queries";
+import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { seedDemoData } from "@/lib/seed";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { toast } from "sonner";
-import { Check, Sparkles, Wallet, TrendingUp, Receipt, ArrowRight, SkipForward } from "lucide-react";
+import { fetchAccounts, fetchOnboardingResponses, fetchProfile, fetchRuleChanges, fetchRules } from "@/lib/queries";
+import { Stepper, type StepMeta } from "@/components/onboarding/stepper";
+import { AboutYouStep } from "@/components/onboarding/steps/about-you";
+import { WhatIsCadenceStep } from "@/components/onboarding/steps/what-is-cadence";
+import { FinancialHabitsStep } from "@/components/onboarding/steps/financial-habits";
+import { PlanningGoalStep } from "@/components/onboarding/steps/planning-goal";
+import { SummaryStep } from "@/components/onboarding/steps/summary";
+import { SetupStep } from "@/components/onboarding/steps/setup";
+import { CompletenessStep } from "@/components/onboarding/steps/completeness";
+import { BuyingPowerRevealStep } from "@/components/onboarding/steps/buying-power";
+import { WelcomeStep } from "@/components/onboarding/steps/welcome";
+import {
+  EMPTY_GOAL,
+  EMPTY_PROFILE,
+  EMPTY_RESPONSES,
+  type OnboardingProfile,
+  type OnboardingResponses,
+  type PlanningGoalDraft,
+} from "@/lib/onboarding/types";
+import { resolveTrack } from "@/lib/onboarding/tracks";
+import { computeBuyingPower, type BuyingPowerSummary } from "@/lib/onboarding/buying-power";
 
 export const Route = createFileRoute("/_authenticated/onboarding")({
   head: () => ({
     meta: [
       { title: "Get started — Cadence" },
-      { name: "description", content: "Set up Cadence in a few short steps: add an account, income, and a bill." },
+      { name: "description", content: "Personalized Cadence setup — a few short questions, then your first Buying Power view." },
     ],
   }),
   component: Onboarding,
 });
 
-type Step = 0 | 1 | 2 | 3 | 4;
-
-const STEPS = [
-  { label: "Welcome", icon: Sparkles },
-  { label: "Account", icon: Wallet },
-  { label: "Income", icon: TrendingUp },
-  { label: "Bill", icon: Receipt },
-  { label: "Done", icon: Check },
+const STEP_LIST: StepMeta[] = [
+  { id: "about", label: "About you" },
+  { id: "what", label: "How Cadence works" },
+  { id: "habits", label: "Your habits" },
+  { id: "goal", label: "Planning goal", optional: true },
+  { id: "summary", label: "Personalization" },
+  { id: "setup", label: "Setup" },
+  { id: "completeness", label: "Completeness" },
+  { id: "buying-power", label: "Buying Power" },
+  { id: "welcome", label: "Welcome" },
 ];
 
 function Onboarding() {
   const navigate = useNavigate();
   const qc = useQueryClient();
+
+  const profileQ = useQuery({ queryKey: ["profile"], queryFn: fetchProfile });
+  const responsesQ = useQuery({ queryKey: ["onboarding_responses"], queryFn: fetchOnboardingResponses });
   const accountsQ = useQuery({ queryKey: ["accounts"], queryFn: fetchAccounts });
-  const [step, setStep] = useState<Step>(0);
+  const rulesQ = useQuery({ queryKey: ["rules"], queryFn: fetchRules });
+  const changesQ = useQuery({ queryKey: ["rule_changes"], queryFn: fetchRuleChanges });
+
+  const [stepIndex, setStepIndex] = useState(0);
   const [busy, setBusy] = useState(false);
-  const [accountId, setAccountId] = useState<string | null>(null);
+  const [profile, setProfile] = useState<OnboardingProfile>(EMPTY_PROFILE);
+  const [responses, setResponses] = useState<OnboardingResponses>(EMPTY_RESPONSES);
+  const [goal, setGoal] = useState<PlanningGoalDraft>(EMPTY_GOAL);
 
-  const today = new Date().toISOString().slice(0, 10);
-
-  const [acct, setAcct] = useState({
-    name: "Main checking",
-    account_type: "checking",
-    current_balance: "",
-    minimum_balance: "0",
-    color: "#7A9A7E",
-  });
-
-  const [income, setIncome] = useState({
-    name: "Paycheck",
-    amount: "",
-    frequency: "biweekly",
-    start_date: today,
-  });
-
-  const [bill, setBill] = useState({
-    name: "Rent",
-    amount: "",
-    day_of_month: "1",
-    start_date: today,
-  });
+  // Hydrate from server on first load
+  useEffect(() => {
+    if (profileQ.data) {
+      setProfile((p) => ({
+        ...p,
+        first_name: profileQ.data.first_name ?? "",
+        last_name: profileQ.data.last_name ?? "",
+        preferred_name: profileQ.data.preferred_name ?? "",
+        age_range: profileQ.data.age_range ?? "",
+        occupation: profileQ.data.occupation ?? "",
+        employment_status: profileQ.data.employment_status ?? "",
+        household_status: profileQ.data.household_status ?? "",
+        preferred_currency: profileQ.data.preferred_currency ?? "USD",
+      }));
+    }
+    if (responsesQ.data) {
+      setResponses((r) => ({
+        ...r,
+        money_management_style: responsesQ.data.money_management_style ?? "",
+        current_budgeting_app: responsesQ.data.current_budgeting_app ?? "",
+        account_structure: responsesQ.data.account_structure ?? "",
+        income_predictability: responsesQ.data.income_predictability ?? "",
+        spending_confidence: responsesQ.data.spending_confidence ?? "",
+        bill_preparation_style: responsesQ.data.bill_preparation_style ?? "",
+        primary_financial_goals: responsesQ.data.primary_financial_goals ?? [],
+        planning_goal_enabled: responsesQ.data.planning_goal_enabled ?? false,
+        all_bills_added: responsesQ.data.all_bills_added ?? "",
+        estimated_bills_remaining: responsesQ.data.estimated_bills_remaining ?? null,
+        all_income_sources_added: responsesQ.data.all_income_sources_added ?? "",
+        estimated_income_sources_remaining: responsesQ.data.estimated_income_sources_remaining ?? null,
+        all_accounts_added: responsesQ.data.all_accounts_added ?? "",
+        account_setup_completeness: responsesQ.data.account_setup_completeness ?? "",
+      }));
+      if (responsesQ.data.current_step) setStepIndex(responsesQ.data.current_step);
+    }
+  }, [profileQ.data, responsesQ.data]);
 
   const uid = async () => (await supabase.auth.getUser()).data.user?.id ?? null;
+
+  const persistProfile = async () => {
+    const id = await uid();
+    if (!id) return;
+    await supabase.from("profiles").update({
+      first_name: profile.first_name || null,
+      last_name: profile.last_name || null,
+      preferred_name: profile.preferred_name || null,
+      age_range: profile.age_range || null,
+      occupation: profile.occupation || null,
+      employment_status: profile.employment_status || null,
+      household_status: profile.household_status || null,
+      preferred_currency: profile.preferred_currency || "USD",
+      display_name: (profile.preferred_name || profile.first_name || "").trim() || null,
+    }).eq("id", id);
+    qc.invalidateQueries({ queryKey: ["profile"] });
+  };
+
+  const persistResponses = async (nextIndex: number) => {
+    const id = await uid();
+    if (!id) return;
+    await supabase.from("onboarding_responses").upsert({
+      user_id: id,
+      current_step: nextIndex,
+      money_management_style: responses.money_management_style || null,
+      current_budgeting_app: responses.current_budgeting_app || null,
+      account_structure: responses.account_structure || null,
+      income_predictability: responses.income_predictability || null,
+      spending_confidence: responses.spending_confidence || null,
+      bill_preparation_style: responses.bill_preparation_style || null,
+      primary_financial_goals: responses.primary_financial_goals,
+      planning_goal_enabled: responses.planning_goal_enabled,
+      all_bills_added: responses.all_bills_added || null,
+      estimated_bills_remaining: responses.estimated_bills_remaining,
+      all_income_sources_added: responses.all_income_sources_added || null,
+      estimated_income_sources_remaining: responses.estimated_income_sources_remaining,
+      all_accounts_added: responses.all_accounts_added || null,
+      account_setup_completeness: responses.account_setup_completeness || null,
+    } as never, { onConflict: "user_id" });
+  };
+
+  const advance = async (delta = 1) => {
+    const next = Math.min(Math.max(0, stepIndex + delta), STEP_LIST.length - 1);
+    setBusy(true);
+    try {
+      await persistResponses(next);
+      setStepIndex(next);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const saveGoal = async () => {
+    const id = await uid();
+    if (!id) return;
+    if (!goal.name.trim() || !Number(goal.target_amount)) return;
+    await supabase.from("planning_goals").insert({
+      user_id: id,
+      name: goal.name.trim(),
+      target_amount: Number(goal.target_amount),
+      amount_already_saved: Number(goal.amount_already_saved || 0),
+      desired_date: goal.desired_date || null,
+      category: goal.category || null,
+    } as never);
+    setResponses((r) => ({ ...r, planning_goal_enabled: true }));
+  };
 
   const loadDemo = async () => {
     setBusy(true);
@@ -72,373 +176,136 @@ function Onboarding() {
       const id = await uid();
       if (!id) throw new Error("Not signed in");
       await seedDemoData(id);
+      await supabase.from("profiles").update({ onboarding_completed_at: new Date().toISOString() }).eq("id", id);
       await qc.invalidateQueries();
-      toast.success("Demo data loaded");
+      toast.success("Sample workspace loaded. You can remove it anytime from Settings.");
       navigate({ to: "/dashboard" });
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to load demo");
+      toast.error(e instanceof Error ? e.message : "Failed to load sample");
     } finally {
       setBusy(false);
     }
   };
 
-  const saveAccount = async () => {
-    if (!acct.name.trim()) return toast.error("Give the account a name");
-    if (acct.current_balance === "" || isNaN(Number(acct.current_balance)))
-      return toast.error("Enter a current balance");
-    setBusy(true);
-    try {
-      const id = await uid();
-      if (!id) throw new Error("Not signed in");
-      const { data, error } = await supabase
-        .from("accounts")
-        .insert({
-          user_id: id,
-          name: acct.name.trim(),
-          account_type: acct.account_type,
-          current_balance: Number(acct.current_balance),
-          minimum_balance: Number(acct.minimum_balance || 0),
-          color: acct.color,
-          balance_as_of: today,
-        } as never)
-        .select("id")
-        .single();
-      if (error) throw error;
-      setAccountId((data as { id: string }).id);
-      await qc.invalidateQueries({ queryKey: ["accounts"] });
-      setStep(2);
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Could not save account");
-    } finally {
-      setBusy(false);
+  const finish = async () => {
+    const id = await uid();
+    if (id) {
+      await supabase.from("profiles").update({ onboarding_completed_at: new Date().toISOString() }).eq("id", id);
+      qc.invalidateQueries({ queryKey: ["profile"] });
     }
+    navigate({ to: "/dashboard" });
   };
 
-  const saveIncome = async () => {
-    if (!accountId) return setStep(2);
-    if (!income.amount || Number(income.amount) <= 0) return toast.error("Enter an amount above zero");
-    setBusy(true);
-    try {
-      const id = await uid();
-      if (!id) throw new Error("Not signed in");
-      const { error } = await supabase.from("financial_rules").insert({
-        user_id: id,
-        rule_type: "income",
-        name: income.name.trim() || "Paycheck",
-        destination_account_id: accountId,
-        amount: Number(income.amount),
-        frequency: income.frequency,
-        start_date: income.start_date,
-        essential: true,
-        fixed_or_variable: "fixed",
-        active: true,
-        confidence_level: "confirmed",
-      } as never);
-      if (error) throw error;
-      await qc.invalidateQueries({ queryKey: ["rules"] });
-      setStep(3);
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Could not save income");
-    } finally {
-      setBusy(false);
-    }
+  const displayName = profile.preferred_name || profile.first_name || "there";
+
+  const buyingPower: BuyingPowerSummary | null = useMemo(() => {
+    if (!accountsQ.data || !rulesQ.data) return null;
+    if (accountsQ.data.length === 0) return null;
+    return computeBuyingPower({
+      accounts: accountsQ.data,
+      rules: rulesQ.data,
+      changes: changesQ.data ?? [],
+    });
+  }, [accountsQ.data, rulesQ.data, changesQ.data]);
+
+  const refreshData = async () => {
+    await Promise.all([
+      qc.invalidateQueries({ queryKey: ["accounts"] }),
+      qc.invalidateQueries({ queryKey: ["rules"] }),
+    ]);
   };
 
-  const saveBill = async () => {
-    if (!accountId) return setStep(3);
-    if (!bill.amount || Number(bill.amount) <= 0) return toast.error("Enter an amount above zero");
-    const dom = Number(bill.day_of_month);
-    if (!Number.isInteger(dom) || dom < 1 || dom > 31) return toast.error("Day of month must be 1–31");
-    setBusy(true);
-    try {
-      const id = await uid();
-      if (!id) throw new Error("Not signed in");
-      const { error } = await supabase.from("financial_rules").insert({
-        user_id: id,
-        rule_type: "expense",
-        name: bill.name.trim() || "Bill",
-        source_account_id: accountId,
-        amount: Number(bill.amount),
-        frequency: "monthly",
-        day_of_month: dom,
-        start_date: bill.start_date,
-        essential: true,
-        fixed_or_variable: "fixed",
-        active: true,
-        confidence_level: "confirmed",
-      } as never);
-      if (error) throw error;
-      await qc.invalidateQueries({ queryKey: ["rules"] });
-      setStep(4);
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Could not save bill");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  // If user already has accounts and hits /onboarding directly, keep them here (they may want to skip).
-  useEffect(() => {
-    if (step === 0 && accountId === null && (accountsQ.data?.length ?? 0) > 0 && !accountsQ.isLoading) {
-      // pre-select their first account so income/bill steps still work if they advance
-      setAccountId(accountsQ.data![0].id);
-    }
-  }, [accountsQ.data, accountsQ.isLoading, step, accountId]);
+  const currentId = STEP_LIST[stepIndex].id;
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      <Stepper current={step} />
+      <Stepper steps={STEP_LIST} currentIndex={stepIndex} />
 
-      {step === 0 && (
-        <Card className="p-6 space-y-4">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Welcome to Cadence</h1>
-            <p className="mt-2 text-sm text-muted-foreground">
-              In under two minutes we'll add your first account, one income, and one bill. You can add
-              more anytime — this is just enough to make the forecast useful.
-            </p>
-          </div>
-          <div className="flex flex-col sm:flex-row gap-3">
-            <Button onClick={() => setStep(1)} className="flex-1">
-              Set up my accounts <ArrowRight className="h-4 w-4 ml-2" />
-            </Button>
-            <Button variant="outline" onClick={loadDemo} disabled={busy} className="flex-1">
-              <Sparkles className="h-4 w-4 mr-2" />
-              {busy ? "Loading demo…" : "Try demo data"}
-            </Button>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Demo data adds two example accounts with realistic income, bills, and payoffs so you can
-            explore before entering your own numbers.
-          </p>
-        </Card>
+      {currentId === "about" && (
+        <AboutYouStep
+          profile={profile}
+          onChange={setProfile}
+          busy={busy}
+          onNext={async () => {
+            await persistProfile();
+            await advance(1);
+          }}
+        />
       )}
 
-      {step === 1 && (
-        <Card className="p-6 space-y-4">
-          <div>
-            <h2 className="text-xl font-semibold">Add your main account</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Start with the checking account most of your day-to-day money moves through.
-            </p>
-          </div>
-          <div className="space-y-3">
-            <div>
-              <Label>Account name</Label>
-              <Input value={acct.name} onChange={(e) => setAcct({ ...acct, name: e.target.value })} />
-            </div>
-            <div>
-              <Label>Type</Label>
-              <Select value={acct.account_type} onValueChange={(v) => setAcct({ ...acct, account_type: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {["checking", "bills_checking", "savings", "cash", "credit_card", "loan", "other"].map((t) => (
-                    <SelectItem key={t} value={t}>{t.replace("_", " ")}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>Current balance</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  placeholder="0.00"
-                  value={acct.current_balance}
-                  onChange={(e) => setAcct({ ...acct, current_balance: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label>Safety minimum</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={acct.minimum_balance}
-                  onChange={(e) => setAcct({ ...acct, minimum_balance: e.target.value })}
-                />
-              </div>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              We'll warn you when the forecast drops below your safety minimum.
-            </p>
-          </div>
-          <div className="flex justify-between pt-2">
-            <Button variant="ghost" onClick={() => setStep(0)}>Back</Button>
-            <Button onClick={saveAccount} disabled={busy}>
-              {busy ? "Saving…" : "Continue"} <ArrowRight className="h-4 w-4 ml-2" />
-            </Button>
-          </div>
-        </Card>
+      {currentId === "what-is-cadence" && (
+        <WhatIsCadenceStep
+          name={displayName}
+          busy={busy}
+          onBegin={() => advance(1)}
+          onExplore={loadDemo}
+          onBack={() => advance(-1)}
+        />
       )}
 
-      {step === 2 && (
-        <Card className="p-6 space-y-4">
-          <div>
-            <h2 className="text-xl font-semibold">Add a source of income</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Even a rough estimate is fine — you can refine it later.
-            </p>
-          </div>
-          <div className="space-y-3">
-            <div>
-              <Label>Name</Label>
-              <Input value={income.name} onChange={(e) => setIncome({ ...income, name: e.target.value })} />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>Amount per payment</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  placeholder="0.00"
-                  value={income.amount}
-                  onChange={(e) => setIncome({ ...income, amount: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label>How often</Label>
-                <Select value={income.frequency} onValueChange={(v) => setIncome({ ...income, frequency: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="weekly">Weekly</SelectItem>
-                    <SelectItem value="biweekly">Every two weeks</SelectItem>
-                    <SelectItem value="semimonthly">Twice a month</SelectItem>
-                    <SelectItem value="monthly">Monthly</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div>
-              <Label>Next payday</Label>
-              <Input
-                type="date"
-                value={income.start_date}
-                onChange={(e) => setIncome({ ...income, start_date: e.target.value })}
-              />
-            </div>
-          </div>
-          <div className="flex justify-between pt-2">
-            <Button variant="ghost" onClick={() => setStep(3)}>
-              <SkipForward className="h-4 w-4 mr-2" /> Skip
-            </Button>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setStep(1)}>Back</Button>
-              <Button onClick={saveIncome} disabled={busy}>
-                {busy ? "Saving…" : "Continue"} <ArrowRight className="h-4 w-4 ml-2" />
-              </Button>
-            </div>
-          </div>
-        </Card>
+      {currentId === "habits" && (
+        <FinancialHabitsStep
+          responses={responses}
+          onChange={setResponses}
+          onBack={() => advance(-1)}
+          onNext={() => advance(1)}
+          busy={busy}
+        />
       )}
 
-      {step === 3 && (
-        <Card className="p-6 space-y-4">
-          <div>
-            <h2 className="text-xl font-semibold">Add a recurring bill</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Add the biggest fixed monthly bill you have. You can add the rest from the Bills page.
-            </p>
-          </div>
-          <div className="space-y-3">
-            <div>
-              <Label>Name</Label>
-              <Input value={bill.name} onChange={(e) => setBill({ ...bill, name: e.target.value })} />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>Amount</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  placeholder="0.00"
-                  value={bill.amount}
-                  onChange={(e) => setBill({ ...bill, amount: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label>Day of month due</Label>
-                <Input
-                  type="number"
-                  min="1"
-                  max="31"
-                  value={bill.day_of_month}
-                  onChange={(e) => setBill({ ...bill, day_of_month: e.target.value })}
-                />
-              </div>
-            </div>
-            <div>
-              <Label>Starting</Label>
-              <Input
-                type="date"
-                value={bill.start_date}
-                onChange={(e) => setBill({ ...bill, start_date: e.target.value })}
-              />
-            </div>
-          </div>
-          <div className="flex justify-between pt-2">
-            <Button variant="ghost" onClick={() => setStep(4)}>
-              <SkipForward className="h-4 w-4 mr-2" /> Skip
-            </Button>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setStep(2)}>Back</Button>
-              <Button onClick={saveBill} disabled={busy}>
-                {busy ? "Saving…" : "Continue"} <ArrowRight className="h-4 w-4 ml-2" />
-              </Button>
-            </div>
-          </div>
-        </Card>
+      {currentId === "goal" && (
+        <PlanningGoalStep
+          goal={goal}
+          onChange={setGoal}
+          onBack={() => advance(-1)}
+          onSkip={() => advance(1)}
+          busy={busy}
+          onNext={async () => {
+            await saveGoal();
+            await advance(1);
+          }}
+        />
       )}
 
-      {step === 4 && (
-        <Card className="p-6 space-y-4 text-center">
-          <div className="mx-auto h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-            <Check className="h-6 w-6 text-primary" />
-          </div>
-          <div>
-            <h2 className="text-xl font-semibold">You're set up</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Cadence is already forecasting from what you entered. Head to the dashboard to see it,
-              or keep adding rules.
-            </p>
-          </div>
-          <div className="flex flex-col sm:flex-row gap-2 justify-center pt-2">
-            <Button onClick={() => navigate({ to: "/dashboard" })}>Go to dashboard</Button>
-            <Button variant="outline" onClick={() => navigate({ to: "/bills" })}>Add more bills</Button>
-            <Button variant="outline" onClick={() => navigate({ to: "/income" })}>Add more income</Button>
-          </div>
-        </Card>
+      {currentId === "summary" && (
+        <SummaryStep
+          name={displayName}
+          responses={responses}
+          goalName={goal.name || null}
+          onBack={() => advance(-1)}
+          onNext={() => advance(1)}
+        />
       )}
+
+      {currentId === "setup" && (
+        <SetupStep
+          track={resolveTrack(responses)}
+          accounts={accountsQ.data ?? []}
+          onRefresh={refreshData}
+          onBack={() => advance(-1)}
+          onNext={() => advance(1)}
+        />
+      )}
+
+      {currentId === "completeness" && (
+        <CompletenessStep
+          responses={responses}
+          onChange={setResponses}
+          onBack={() => advance(-1)}
+          onNext={() => advance(1)}
+        />
+      )}
+
+      {currentId === "buying-power" && (
+        <BuyingPowerRevealStep
+          summary={buyingPower}
+          name={displayName}
+          onBack={() => advance(-1)}
+          onNext={() => advance(1)}
+        />
+      )}
+
+      {currentId === "welcome" && <WelcomeStep name={displayName} onFinish={finish} />}
     </div>
-  );
-}
-
-function Stepper({ current }: { current: Step }) {
-  return (
-    <ol className="flex items-center gap-2 text-xs">
-      {STEPS.map((s, i) => {
-        const Icon = s.icon;
-        const done = i < current;
-        const active = i === current;
-        return (
-          <li key={s.label} className="flex items-center gap-2 flex-1">
-            <div
-              className={[
-                "h-8 w-8 rounded-full flex items-center justify-center shrink-0 border transition-colors",
-                done ? "bg-primary text-primary-foreground border-primary" : "",
-                active ? "border-primary text-primary" : "",
-                !done && !active ? "border-border text-muted-foreground" : "",
-              ].join(" ")}
-            >
-              {done ? <Check className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
-            </div>
-            <span className={`hidden sm:inline ${active ? "text-foreground" : "text-muted-foreground"}`}>
-              {s.label}
-            </span>
-            {i < STEPS.length - 1 && <div className="h-px flex-1 bg-border" />}
-          </li>
-        );
-      })}
-    </ol>
   );
 }
