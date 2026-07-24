@@ -115,7 +115,7 @@ export function BuyingPowerRevealStep({
         </div>
       )}
 
-      <NavControls onBack={onBack} onNext={onNext} nextLabel="Take me to my dashboard" />
+      <NavControls onBack={onBack} onNext={onNext} nextLabel="Take me to my dashboard" busy={false} />
     </Card>
   );
 }

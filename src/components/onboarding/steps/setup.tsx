@@ -4,16 +4,33 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { NavControls } from "../nav-controls";
 import { toast } from "sonner";
+import { Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Account } from "@/lib/forecast/types";
 import type { SetupTrack } from "@/lib/onboarding/types";
-import { TRACK_COPY } from "@/lib/onboarding/tracks";
+import { ACCOUNT_COLOR_PALETTE, DEFAULT_ACCOUNT_COLOR } from "@/lib/onboarding/colors";
 
 type SubStep = "accounts" | "income" | "bills";
 
 const ACCOUNT_TYPES = ["checking", "bills_checking", "savings", "cash", "credit_card", "loan", "other"];
+
+interface AccountDraft {
+  key: string;
+  name: string;
+  account_type: string;
+  current_balance: string;
+  minimum_balance: string;
+  color: string;
+  include_in_forecast: boolean;
+  /** Required accounts cannot be removed (Primary, and Bills on the split track). */
+  required?: "primary" | "bills";
+}
+
+let draftId = 0;
+const nextKey = () => `acct-${++draftId}`;
 
 export function SetupStep({
   track,
@@ -37,17 +54,32 @@ export function SetupStep({
   const [createdPrimary, setCreatedPrimary] = useState<{ id: string; account_type: string } | null>(null);
   const [createdBills, setCreatedBills] = useState<{ id: string; account_type: string } | null>(null);
 
-  const [primary, setPrimary] = useState({
-    name: "Main checking",
-    account_type: "checking",
-    current_balance: "",
-    minimum_balance: "0",
-  });
-  const [secondary, setSecondary] = useState({
-    name: "Bills account",
-    account_type: "bills_checking",
-    current_balance: "",
-    minimum_balance: "0",
+  const [drafts, setDrafts] = useState<AccountDraft[]>(() => {
+    const base: AccountDraft[] = [
+      {
+        key: nextKey(),
+        name: "Main checking",
+        account_type: "checking",
+        current_balance: "",
+        minimum_balance: "0",
+        color: ACCOUNT_COLOR_PALETTE[0].value,
+        include_in_forecast: true,
+        required: "primary",
+      },
+    ];
+    if (needsSecondAccount) {
+      base.push({
+        key: nextKey(),
+        name: "Bills account",
+        account_type: "bills_checking",
+        current_balance: "",
+        minimum_balance: "0",
+        color: ACCOUNT_COLOR_PALETTE[1].value,
+        include_in_forecast: true,
+        required: "bills",
+      });
+    }
+    return base;
   });
 
   const [income, setIncome] = useState({
@@ -67,41 +99,58 @@ export function SetupStep({
 
   const uid = async () => (await supabase.auth.getUser()).data.user?.id ?? null;
 
+  const addAccount = () => {
+    const nextColor = ACCOUNT_COLOR_PALETTE[drafts.length % ACCOUNT_COLOR_PALETTE.length].value;
+    setDrafts((d) => [
+      ...d,
+      {
+        key: nextKey(),
+        name: "",
+        account_type: "savings",
+        current_balance: "",
+        minimum_balance: "0",
+        color: nextColor,
+        include_in_forecast: true,
+      },
+    ]);
+  };
+
+  const updateDraft = (key: string, patch: Partial<AccountDraft>) => {
+    setDrafts((d) => d.map((a) => (a.key === key ? { ...a, ...patch } : a)));
+  };
+
+  const removeDraft = (key: string) => {
+    setDrafts((d) => d.filter((a) => a.key === key || a.required));
+  };
+
   const saveAccounts = async () => {
-    if (!primary.name || !primary.current_balance) return toast.error("Fill in the primary account");
+    const primary = drafts.find((d) => d.required === "primary")!;
+    if (!primary.name.trim() || !primary.current_balance) return toast.error("Fill in your primary account");
+    for (const d of drafts) {
+      if (!d.name.trim()) return toast.error("Every account needs a name");
+    }
     setBusy(true);
     try {
       const id = await uid();
       if (!id) throw new Error("Not signed in");
-      const rows: Record<string, unknown>[] = [
-        {
-          user_id: id,
-          name: primary.name.trim(),
-          account_type: primary.account_type,
-          current_balance: Number(primary.current_balance),
-          minimum_balance: Number(primary.minimum_balance || 0),
-          balance_as_of: today,
-        },
-      ];
-      if (needsSecondAccount) {
-        rows.push({
-          user_id: id,
-          name: secondary.name.trim(),
-          account_type: secondary.account_type,
-          current_balance: Number(secondary.current_balance || 0),
-          minimum_balance: Number(secondary.minimum_balance || 0),
-          balance_as_of: today,
-        });
-      }
+      const rows = drafts.map((d) => ({
+        user_id: id,
+        name: d.name.trim(),
+        account_type: d.account_type,
+        current_balance: Number(d.current_balance || 0),
+        minimum_balance: Number(d.minimum_balance || 0),
+        color: d.color || DEFAULT_ACCOUNT_COLOR,
+        include_in_forecast: d.include_in_forecast,
+        balance_as_of: today,
+      })) as Record<string, unknown>[];
       const { data: inserted, error } = await supabase
         .from("accounts")
         .insert(rows as never)
         .select("id, name, account_type");
       if (error) throw error;
       const primaryRow = (inserted ?? []).find((r) => r.name === primary.name.trim());
-      const billsRow = needsSecondAccount
-        ? (inserted ?? []).find((r) => r.name === secondary.name.trim())
-        : null;
+      const billsDraft = drafts.find((d) => d.required === "bills");
+      const billsRow = billsDraft ? (inserted ?? []).find((r) => r.name === billsDraft.name.trim()) : null;
       if (primaryRow) setCreatedPrimary({ id: primaryRow.id, account_type: primaryRow.account_type });
       if (billsRow) setCreatedBills({ id: billsRow.id, account_type: billsRow.account_type });
       await onRefresh();
@@ -182,31 +231,34 @@ export function SetupStep({
     }
   };
 
-  const copy = TRACK_COPY[track];
-
   return (
-    <Card className="p-6 space-y-4">
+    <Card className="p-6 space-y-5">
       <div>
-        <div className="text-xs uppercase tracking-wider text-primary font-medium">{copy.title}</div>
-        <h2 className="text-xl font-semibold mt-1">
-          {sub === "accounts" && "Add your account(s)"}
+        <h2 className="text-xl font-semibold">
+          {sub === "accounts" && "Set up your accounts"}
           {sub === "income" && "Add your primary income"}
           {sub === "bills" && "Add your biggest recurring bill"}
         </h2>
         <p className="text-sm text-muted-foreground mt-1">
-          {sub === "accounts" && copy.blurb}
-          {sub === "income" &&
-            (track === "variable-income"
-              ? "Cadence will treat this as an estimate so surprises hurt less."
-              : "A rough amount is fine — you can refine it anytime.")}
-          {sub === "bills" && "We only need one to get you going. You can add the rest from the Bills page."}
+          {sub === "accounts" && "Pick a color for each — it'll follow the account across Cadence."}
+          {sub === "income" && "A rough amount is fine. Refine anytime."}
+          {sub === "bills" && "One is enough to get going. Add the rest from the Bills page."}
         </p>
       </div>
 
       {sub === "accounts" && (
         <div className="space-y-4">
-          <AccountFields label="Primary account" value={primary} onChange={setPrimary} />
-          {needsSecondAccount && <AccountFields label="Bills account" value={secondary} onChange={setSecondary} />}
+          {drafts.map((d) => (
+            <AccountFields
+              key={d.key}
+              value={d}
+              onChange={(patch) => updateDraft(d.key, patch)}
+              onRemove={d.required ? undefined : () => removeDraft(d.key)}
+            />
+          ))}
+          <Button variant="outline" type="button" onClick={addAccount} className="w-full">
+            <Plus className="h-4 w-4 mr-2" /> Add another account
+          </Button>
           <NavControls onBack={onBack} onNext={saveAccounts} busy={busy} />
         </div>
       )}
@@ -261,30 +313,69 @@ export function SetupStep({
 }
 
 function AccountFields({
-  label,
   value,
   onChange,
+  onRemove,
 }: {
-  label: string;
-  value: { name: string; account_type: string; current_balance: string; minimum_balance: string };
-  onChange: (v: { name: string; account_type: string; current_balance: string; minimum_balance: string }) => void;
+  value: AccountDraft;
+  onChange: (patch: Partial<AccountDraft>) => void;
+  onRemove?: () => void;
 }) {
+  const label =
+    value.required === "primary" ? "Primary account" :
+    value.required === "bills" ? "Bills account" :
+    "Additional account";
   return (
-    <div className="rounded-md border p-3 space-y-3">
-      <div className="text-sm font-medium">{label}</div>
+    <div className="rounded-lg border p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="h-3 w-3 rounded-full" style={{ background: value.color }} />
+          <div className="text-sm font-medium">{label}</div>
+        </div>
+        {onRemove && (
+          <Button type="button" variant="ghost" size="sm" onClick={onRemove} className="text-muted-foreground">
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        )}
+      </div>
       <div className="grid grid-cols-2 gap-3">
-        <div><Label>Name</Label><Input value={value.name} onChange={(e) => onChange({ ...value, name: e.target.value })} /></div>
+        <div><Label>Name</Label><Input value={value.name} onChange={(e) => onChange({ name: e.target.value })} /></div>
         <div>
           <Label>Type</Label>
-          <Select value={value.account_type} onValueChange={(v) => onChange({ ...value, account_type: v })}>
+          <Select value={value.account_type} onValueChange={(v) => onChange({ account_type: v })}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               {ACCOUNT_TYPES.map((t) => <SelectItem key={t} value={t}>{t.replace("_", " ")}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
-        <div><Label>Current balance</Label><Input type="number" step="0.01" value={value.current_balance} onChange={(e) => onChange({ ...value, current_balance: e.target.value })} /></div>
-        <div><Label>Safety minimum</Label><Input type="number" step="0.01" value={value.minimum_balance} onChange={(e) => onChange({ ...value, minimum_balance: e.target.value })} /></div>
+        <div><Label>Starting balance</Label><Input type="number" step="0.01" value={value.current_balance} onChange={(e) => onChange({ current_balance: e.target.value })} /></div>
+        <div><Label>Safety minimum</Label><Input type="number" step="0.01" value={value.minimum_balance} onChange={(e) => onChange({ minimum_balance: e.target.value })} /></div>
+      </div>
+      <div>
+        <Label className="mb-1 block">Color</Label>
+        <div className="flex flex-wrap gap-2">
+          {ACCOUNT_COLOR_PALETTE.map((c) => {
+            const selected = value.color === c.value;
+            return (
+              <button
+                key={c.value}
+                type="button"
+                aria-label={c.name}
+                onClick={() => onChange({ color: c.value })}
+                className={`h-7 w-7 rounded-full border-2 transition ${selected ? "border-foreground scale-110" : "border-transparent"}`}
+                style={{ background: c.value }}
+              />
+            );
+          })}
+        </div>
+      </div>
+      <div className="flex items-center justify-between pt-1">
+        <Label className="text-sm font-normal text-muted-foreground">Include in forecast</Label>
+        <Switch
+          checked={value.include_in_forecast}
+          onCheckedChange={(v) => onChange({ include_in_forecast: !!v })}
+        />
       </div>
     </div>
   );
