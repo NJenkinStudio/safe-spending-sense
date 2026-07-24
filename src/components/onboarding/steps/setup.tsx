@@ -147,7 +147,7 @@ export function SetupStep({
 
   const saveBill = async () => {
     const billAcct =
-      (createdBills ?? null) ??
+      createdBills ??
       accounts.find((a) => a.account_type === "bills_checking") ??
       createdPrimary ??
       accounts[0] ??
