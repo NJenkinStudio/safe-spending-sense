@@ -78,7 +78,7 @@ describe("computeBuyingPower", () => {
   it("treats transfers-out as obligations on the source account (reserved money)", () => {
     const a = acct({ id: "a1", current_balance: 1000, minimum_balance: 100 });
     const b = acct({ id: "a2", current_balance: 0, minimum_balance: 0, name: "Bills" });
-    const transfer = rule({ id: "t", rule_type: "transfer", frequency: "weekly", start_date: "2026-01-02", amount: 100, source_account_id: "a1", destination_account_id: "a2", day_of_week: 5, destination_account_id_optional: undefined as never });
+    const transfer = rule({ id: "t", rule_type: "transfer", frequency: "weekly", start_date: "2026-01-02", amount: 100, source_account_id: "a1", destination_account_id: "a2", day_of_week: 5 });
     const res = computeBuyingPower({
       accounts: [a, b],
       rules: [transfer],
@@ -95,7 +95,7 @@ describe("computeBuyingPower", () => {
   });
 
   it("returns negative buying power when the trough breaches the minimum", () => {
-    const bigBill = rule({ id: "big", rule_type: "expense", frequency: "one_time", start_date: "2026-01-10", amount: 950, source_account_id: "a1", essential: true, frequency_interval: undefined as never });
+    const bigBill = rule({ id: "big", rule_type: "expense", frequency: "one_time", start_date: "2026-01-10", amount: 950, source_account_id: "a1", essential: true });
     const res = computeBuyingPower({
       accounts: [acct({ current_balance: 1000, minimum_balance: 200 })],
       rules: [bigBill],
