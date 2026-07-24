@@ -39,7 +39,10 @@ export async function seedDemoData(userId: string) {
     { user_id: userId, rule_type: "expense", name: "Electric", source_account_id: bills.id, amount: 120, frequency: "monthly", start_date: firstNextMonth, day_of_month: 10, essential: true, fixed_or_variable: "variable", category: "utilities" },
     { user_id: userId, rule_type: "expense", name: "Streaming", source_account_id: bills.id, amount: 18.99, frequency: "monthly", start_date: today, day_of_month: 15, essential: false, category: "subscription" },
   ] as Array<Record<string, unknown>>).map((r) => ({ ...r, is_demo: true }));
-  const { data: insertedRules, error: rErr } = await supabase.from("financial_rules").insert(rules).select();
+  const { data: insertedRules, error: rErr } = await supabase
+    .from("financial_rules")
+    .insert(rules as never)
+    .select();
   if (rErr) throw rErr;
 
   const insurance = insertedRules!.find((r) => r.name === "Insurance");
