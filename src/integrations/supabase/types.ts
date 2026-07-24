@@ -24,6 +24,7 @@ export type Database = {
           id: string
           include_in_forecast: boolean
           institution_name: string | null
+          is_demo: boolean
           last_synced_at: string | null
           minimum_balance: number
           name: string
@@ -42,6 +43,7 @@ export type Database = {
           id?: string
           include_in_forecast?: boolean
           institution_name?: string | null
+          is_demo?: boolean
           last_synced_at?: string | null
           minimum_balance?: number
           name: string
@@ -60,6 +62,7 @@ export type Database = {
           id?: string
           include_in_forecast?: boolean
           institution_name?: string | null
+          is_demo?: boolean
           last_synced_at?: string | null
           minimum_balance?: number
           name?: string
@@ -95,6 +98,7 @@ export type Database = {
           frequency: string
           id: string
           interval_count: number | null
+          is_demo: boolean
           name: string
           notes: string | null
           occurrence_limit: number | null
@@ -120,6 +124,7 @@ export type Database = {
           frequency?: string
           id?: string
           interval_count?: number | null
+          is_demo?: boolean
           name: string
           notes?: string | null
           occurrence_limit?: number | null
@@ -145,6 +150,7 @@ export type Database = {
           frequency?: string
           id?: string
           interval_count?: number | null
+          is_demo?: boolean
           name?: string
           notes?: string | null
           occurrence_limit?: number | null
@@ -171,6 +177,69 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      onboarding_responses: {
+        Row: {
+          account_setup_completeness: string | null
+          account_structure: string | null
+          all_accounts_added: string | null
+          all_bills_added: string | null
+          all_income_sources_added: string | null
+          bill_preparation_style: string | null
+          created_at: string
+          current_budgeting_app: string | null
+          current_step: number
+          estimated_bills_remaining: number | null
+          estimated_income_sources_remaining: number | null
+          income_predictability: string | null
+          money_management_style: string | null
+          planning_goal_enabled: boolean
+          primary_financial_goals: string[]
+          spending_confidence: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_setup_completeness?: string | null
+          account_structure?: string | null
+          all_accounts_added?: string | null
+          all_bills_added?: string | null
+          all_income_sources_added?: string | null
+          bill_preparation_style?: string | null
+          created_at?: string
+          current_budgeting_app?: string | null
+          current_step?: number
+          estimated_bills_remaining?: number | null
+          estimated_income_sources_remaining?: number | null
+          income_predictability?: string | null
+          money_management_style?: string | null
+          planning_goal_enabled?: boolean
+          primary_financial_goals?: string[]
+          spending_confidence?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_setup_completeness?: string | null
+          account_structure?: string | null
+          all_accounts_added?: string | null
+          all_bills_added?: string | null
+          all_income_sources_added?: string | null
+          bill_preparation_style?: string | null
+          created_at?: string
+          current_budgeting_app?: string | null
+          current_step?: number
+          estimated_bills_remaining?: number | null
+          estimated_income_sources_remaining?: number | null
+          income_predictability?: string | null
+          money_management_style?: string | null
+          planning_goal_enabled?: boolean
+          primary_financial_goals?: string[]
+          spending_confidence?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       plaid_items: {
         Row: {
@@ -202,26 +271,95 @@ export type Database = {
         }
         Relationships: []
       }
+      planning_goals: {
+        Row: {
+          amount_already_saved: number
+          category: string | null
+          created_at: string
+          desired_date: string | null
+          id: string
+          name: string
+          status: string
+          target_amount: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount_already_saved?: number
+          category?: string | null
+          created_at?: string
+          desired_date?: string | null
+          id?: string
+          name: string
+          status?: string
+          target_amount: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount_already_saved?: number
+          category?: string | null
+          created_at?: string
+          desired_date?: string | null
+          id?: string
+          name?: string
+          status?: string
+          target_amount?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
+          age_range: string | null
           created_at: string
           display_name: string | null
           email: string | null
+          employment_status: string | null
+          first_name: string | null
+          household_status: string | null
           id: string
+          last_name: string | null
+          occupation: string | null
+          onboarding_completed_at: string | null
+          onboarding_version: number
+          preferred_currency: string | null
+          preferred_name: string | null
           updated_at: string
         }
         Insert: {
+          age_range?: string | null
           created_at?: string
           display_name?: string | null
           email?: string | null
+          employment_status?: string | null
+          first_name?: string | null
+          household_status?: string | null
           id: string
+          last_name?: string | null
+          occupation?: string | null
+          onboarding_completed_at?: string | null
+          onboarding_version?: number
+          preferred_currency?: string | null
+          preferred_name?: string | null
           updated_at?: string
         }
         Update: {
+          age_range?: string | null
           created_at?: string
           display_name?: string | null
           email?: string | null
+          employment_status?: string | null
+          first_name?: string | null
+          household_status?: string | null
           id?: string
+          last_name?: string | null
+          occupation?: string | null
+          onboarding_completed_at?: string | null
+          onboarding_version?: number
+          preferred_currency?: string | null
+          preferred_name?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -233,6 +371,7 @@ export type Database = {
           field_name: string
           financial_rule_id: string
           id: string
+          is_demo: boolean
           new_value: string
           notes: string | null
           old_value: string | null
@@ -244,6 +383,7 @@ export type Database = {
           field_name: string
           financial_rule_id: string
           id?: string
+          is_demo?: boolean
           new_value: string
           notes?: string | null
           old_value?: string | null
@@ -255,6 +395,7 @@ export type Database = {
           field_name?: string
           financial_rule_id?: string
           id?: string
+          is_demo?: boolean
           new_value?: string
           notes?: string | null
           old_value?: string | null
