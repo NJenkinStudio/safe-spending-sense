@@ -78,12 +78,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Cadence — Forward personal finance" },
-      { name: "description", content: "Forecast future balances and make safe spending decisions." },
-      { property: "og:title", content: "Cadence — Forward personal finance" },
-      { property: "og:description", content: "Forecast future balances and make safe spending decisions." },
+      { title: "Cadence — Forecast your cash flow" },
+      { name: "description", content: "See your future balances, catch underfunded weeks early, and decide safely if you can afford a purchase — on real calendar dates." },
+      { property: "og:title", content: "Cadence — Forecast your cash flow" },
+      { property: "og:description", content: "See your future balances, catch underfunded weeks early, and decide safely if you can afford a purchase — on real calendar dates." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "Cadence — Forecast your cash flow" },
+      { name: "twitter:description", content: "See your future balances, catch underfunded weeks early, and decide safely if you can afford a purchase — on real calendar dates." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/1fda437e-0ac7-4326-8880-6ad2fadd131f/id-preview-6659b0bd--8506c67e-72ea-4bb7-a5fa-9b685e831c83.lovable.app-1785138272389.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/1fda437e-0ac7-4326-8880-6ad2fadd131f/id-preview-6659b0bd--8506c67e-72ea-4bb7-a5fa-9b685e831c83.lovable.app-1785138272389.png" },
     ],
     links: [
       {

@@ -15,7 +15,7 @@ export const Route = createFileRoute("/")({
       {
         property: "og:description",
         content:
-          "A forward-looking personal finance tool built on calendar dates, recurring rules, and safety constraints.",
+          "See your future balances, catch underfunded weeks early, and decide safely if you can afford a purchase — on real calendar dates.",
       },
       { property: "og:type", content: "website" },
     ],
