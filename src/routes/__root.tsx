@@ -127,9 +127,17 @@ function getPublicBackendEnvScript() {
 
 function getPublicBackendEnv() {
   const runtimeEnv = typeof process !== "undefined" ? process.env : {};
-  const url = import.meta.env.VITE_SUPABASE_URL || runtimeEnv.SUPABASE_URL || "";
+  // Public Lovable Cloud values — safe to ship in the client bundle.
+  // Kept as a hard fallback so the app never white-screens if the build
+  // or worker runtime env is missing these keys.
+  const FALLBACK_URL = "https://tspvmrmovcyvwtythksm.supabase.co";
+  const FALLBACK_KEY = "sb_publishable_mL4r1beIzOhl8yt7eaGzUA_NoTChBQU";
+  const url =
+    import.meta.env.VITE_SUPABASE_URL || runtimeEnv.SUPABASE_URL || FALLBACK_URL;
   const publishableKey =
-    import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || runtimeEnv.SUPABASE_PUBLISHABLE_KEY || "";
+    import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+    runtimeEnv.SUPABASE_PUBLISHABLE_KEY ||
+    FALLBACK_KEY;
 
   return {
     SUPABASE_URL: url,
