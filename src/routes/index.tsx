@@ -42,14 +42,13 @@ function Landing() {
       <main className="max-w-6xl mx-auto px-6 pt-16 pb-24">
         <div className="max-w-3xl">
           <p className="text-sm uppercase tracking-widest text-muted-foreground">
-            Cadence doesn't tell you no. Cadence gives you a rhythm that keeps your money on your time.
+            Cadence, built to give you a rhythm that keeps your money on your time.
           </p>
           <h1 className="mt-3 text-5xl md:text-6xl font-semibold tracking-tight leading-tight">
             Know what your balance will look like <span className="text-primary">on any future date.</span>
           </h1>
           <p className="mt-6 text-lg text-muted-foreground max-w-2xl">
-            Cadence models your income, transfers, and bills as recurring rules on real calendar dates — then quietly
-            tells you whether you can safely afford what's next.
+            Utilizing your income, transfers, and bills as recurring rules on real calendar dates <span className="text-primary">Cadence keeps you knowing whether you can safely afford what's next.</span> 
           </p>
           <div className="mt-8 flex gap-3">
             <Link to="/auth">
@@ -57,7 +56,7 @@ function Landing() {
             </Link>
           </div>
         </div>
-        <div className="mt-20 grid md:grid-cols-3 gap-6">
+        <div className="mt-20 grid md:grid-cols-3 gap-5">
           {[
             {
               icon: LineChart,
