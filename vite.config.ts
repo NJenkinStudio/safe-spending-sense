@@ -15,5 +15,19 @@ export default defineConfig({
   },
   vite: {
     plugins: [mcpPlugin()],
+    // Guarantee the public Supabase values are inlined in the client bundle
+    // even when the hosted build environment does not surface VITE_* env vars.
+    // These are public (URL + publishable anon key) and safe to ship.
+    define: {
+      "import.meta.env.VITE_SUPABASE_URL": JSON.stringify(
+        process.env.VITE_SUPABASE_URL || "https://tspvmrmovcyvwtythksm.supabase.co",
+      ),
+      "import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY": JSON.stringify(
+        process.env.VITE_SUPABASE_PUBLISHABLE_KEY || "sb_publishable_mL4r1beIzOhl8yt7eaGzUA_NoTChBQU",
+      ),
+      "import.meta.env.VITE_SUPABASE_PROJECT_ID": JSON.stringify(
+        process.env.VITE_SUPABASE_PROJECT_ID || "tspvmrmovcyvwtythksm",
+      ),
+    },
   },
 });
