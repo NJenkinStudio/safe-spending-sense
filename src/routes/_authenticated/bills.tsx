@@ -144,9 +144,21 @@ function BillsPage() {
         })}
       </Card>
 
+      <Dialog open={!!editing} onOpenChange={(v) => !v && setEditing(null)}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Edit bill</DialogTitle></DialogHeader>
+          {editing && (
+            <RuleForm
+              ruleType="expense"
+              accounts={accts}
+              initial={editing}
+              onSaved={() => { setEditing(null); qc.invalidateQueries({ queryKey: ["rules"] }); }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={!!changeFor} onOpenChange={(v) => !v && setChangeFor(null)}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Schedule a change</DialogTitle></DialogHeader>
         <DialogContent>
           <DialogHeader><DialogTitle>Schedule a change</DialogTitle></DialogHeader>
           <div className="space-y-3">
