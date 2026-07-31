@@ -147,6 +147,8 @@ function BillsPage() {
       <Dialog open={!!changeFor} onOpenChange={(v) => !v && setChangeFor(null)}>
         <DialogContent>
           <DialogHeader><DialogTitle>Schedule a change</DialogTitle></DialogHeader>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Schedule a change</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div><Label>Effective date</Label><Input type="date" value={changeForm.effective_date} onChange={(e) => setChangeForm({ ...changeForm, effective_date: e.target.value })} /></div>
             <div><Label>Field</Label>
