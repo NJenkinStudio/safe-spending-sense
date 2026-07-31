@@ -8,12 +8,13 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { RuleForm } from "@/components/rule-form";
-import { Plus, Trash2, Calendar as CalIcon } from "lucide-react";
+import { Plus, Trash2, Calendar as CalIcon, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import { payoffDate } from "@/lib/forecast/engine";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import type { FinancialRule } from "@/lib/forecast/types";
 
 export const Route = createFileRoute("/_authenticated/bills")({
   head: () => ({ meta: [{ title: "Bills — Cadence" }, { name: "description", content: "Recurring bills, subscriptions, and financed obligations." }] }),
@@ -28,6 +29,7 @@ function BillsPage() {
   const rulesQ = useQuery({ queryKey: ["rules"], queryFn: fetchRules });
   const changesQ = useQuery({ queryKey: ["changes"], queryFn: fetchRuleChanges });
   const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<FinancialRule | null>(null);
   const [filter, setFilter] = useState<"all" | "essential" | "discretionary" | "financed">("all");
   const [changeFor, setChangeFor] = useState<string | null>(null);
   const [changeForm, setChangeForm] = useState({ effective_date: "", field_name: "amount", new_value: "" });
@@ -121,6 +123,7 @@ function BillsPage() {
                     <div className="font-medium">{fmt(Number(r.amount))}</div>
                     {remaining !== null && <div className="text-[11px] text-muted-foreground">{remaining} left</div>}
                   </div>
+                  <Button size="icon" variant="ghost" onClick={() => setEditing(r)}><Pencil className="h-4 w-4" /></Button>
                   <Button size="icon" variant="ghost" onClick={() => { setChangeFor(r.id); setChangeForm({ effective_date: format(new Date(), "yyyy-MM-dd"), field_name: "amount", new_value: String(r.amount) }); }}>
                     <CalIcon className="h-4 w-4" />
                   </Button>
